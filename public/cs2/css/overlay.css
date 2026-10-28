@@ -1,0 +1,767 @@
+/* =========================================================================
+   Оверлей CS2 — 1920×1080, прозрачный фон.
+
+   Фирменный стиль общий с HUD для Dota 2: тёмно-фиолетовая база,
+   диагональные срезы, градиент электрик→маджента, лаймовый акцент.
+   Стороны — привычные зрителю CS: CT синий, T янтарный.
+
+   Главное правило: игра важнее графики. Центр экрана всегда свободен,
+   постоянно висят только табло сверху и игроки по нижним углам.
+   ========================================================================= */
+
+@font-face { font-family: 'Inter Tight'; font-weight: 400; font-display: block; src: url('/fonts/inter-tight-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 400; font-display: block; src: url('/fonts/inter-tight-cyrillic-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 500; font-display: block; src: url('/fonts/inter-tight-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 500; font-display: block; src: url('/fonts/inter-tight-cyrillic-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 600; font-display: block; src: url('/fonts/inter-tight-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 600; font-display: block; src: url('/fonts/inter-tight-cyrillic-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 700; font-display: block; src: url('/fonts/inter-tight-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-weight: 700; font-display: block; src: url('/fonts/inter-tight-cyrillic-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Unbounded'; font-weight: 600; font-display: block; src: url('/fonts/unbounded-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Unbounded'; font-weight: 600; font-display: block; src: url('/fonts/unbounded-cyrillic-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Unbounded'; font-weight: 700; font-display: block; src: url('/fonts/unbounded-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Unbounded'; font-weight: 700; font-display: block; src: url('/fonts/unbounded-cyrillic-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Unbounded'; font-weight: 800; font-display: block; src: url('/fonts/unbounded-latin-800-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Unbounded'; font-weight: 800; font-display: block; src: url('/fonts/unbounded-cyrillic-800-normal.woff2') format('woff2'); }
+
+:root {
+  --void:    #06050D;
+  --glass:   rgba(15, 11, 30, 0.86);
+  --glass-2: rgba(15, 11, 30, 0.64);
+  --line:    rgba(160, 138, 255, 0.14);
+  --text:    #F3EFFF;
+  --muted:   #9A92C2;
+
+  /* Стороны. Зритель читает их без подписей — менять не стоит. */
+  --ct:      #5AA9FF;
+  --ct-soft: #A9D2FF;
+  --ct-dim:  #123A66;
+  --t:       #F5B53A;
+  --t-soft:  #FFD98F;
+  --t-dim:   #5E3F08;
+
+  /* Фирменные цвета турнира — меняйте под себя */
+  --brand-a: #6C4DFF;
+  --brand-b: #FF3D8A;
+  --lime:    #D8FF3E;
+  --danger:  #FF4A5E;
+
+  --cut: 16px;          /* глубина диагонального среза */
+  --edge: 24px;         /* отступ от краёв экрана */
+  --lift: 0px;          /* сдвиг нижних панелей вверх, когда включена бегущая строка */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent;
+  color: var(--text);
+  font-family: 'Inter Tight', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+body.has-ticker { --lift: 40px; }
+
+.layer { position: absolute; inset: 0; }
+.layer-full { display: flex; }
+[hidden] { display: none !important; }
+.ico { width: 1em; height: 1em; flex: 0 0 auto; fill: currentColor; }
+
+/* Цвет стороны задаётся одной переменной на любом элементе */
+.is-ct { --side: var(--ct); --side-soft: var(--ct-soft); --side-dim: var(--ct-dim);
+         --side-40: rgba(90,169,255,.40); --side-34: rgba(90,169,255,.34); --side-24: rgba(90,169,255,.26); --side-08: rgba(90,169,255,.08); }
+.is-t  { --side: var(--t);  --side-soft: var(--t-soft);  --side-dim: var(--t-dim);
+         --side-40: rgba(245,181,58,.40); --side-34: rgba(245,181,58,.32); --side-24: rgba(245,181,58,.24); --side-08: rgba(245,181,58,.08); }
+/* color-mix() и translate: не используем — в OBS старых версий встроенный Chromium их не знает */
+
+/* ======================================================= ТАБЛО */
+
+.board {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  height: 78px;
+  filter: drop-shadow(0 10px 28px rgba(0,0,0,.55));
+}
+
+.board__team {
+  position: relative;
+  width: 450px;
+  display: flex; align-items: center; gap: 14px;
+  background: linear-gradient(180deg, rgba(8,6,18,.97), rgba(15,11,30,.92));
+}
+.board__team--a { padding-left: 22px; clip-path: polygon(0 0, 100% 0, 100% 100%, var(--cut) 100%); }
+.board__team--b { padding-right: 22px; justify-content: flex-end; clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%); }
+
+/* цветная кромка стороны снизу */
+.board__team::after {
+  content: ''; position: absolute; bottom: 0; height: 3px; width: 100%;
+  background: var(--side, var(--muted));
+  box-shadow: 0 0 16px var(--side, transparent);
+}
+.board__team--a::after { left: 0; background: linear-gradient(90deg, transparent, var(--side) 30%); }
+.board__team--b::after { right: 0; background: linear-gradient(270deg, transparent, var(--side) 30%); }
+
+.board__logo {
+  width: 46px; height: 46px; flex: 0 0 46px;
+  background: center / contain no-repeat;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.6));
+}
+.board__name-wrap { flex: 1; min-width: 0; }
+.board__team--b .board__name-wrap { text-align: right; }
+.board__name {
+  font-size: 27px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.board__meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.board__team--b .board__meta { justify-content: flex-end; }
+
+.side-pill {
+  display: inline-block;
+  padding: 2px 8px 1px;
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  color: #0A0816;
+  background: var(--side, var(--muted));
+  transform: skewX(-12deg);
+}
+
+.board__series { display: flex; gap: 4px; }
+.series__chip {
+  width: 13px; height: 9px;
+  transform: skewX(-14deg);
+  background: rgba(243,239,255,.12);
+  border: 1px solid rgba(243,239,255,.28);
+}
+.series__chip--won { background: var(--lime); border-color: transparent; box-shadow: 0 0 10px rgba(216,255,62,.5); }
+
+.board__score {
+  width: 84px; height: 100%;
+  display: grid; place-items: center;
+  font-family: Unbounded, 'Inter Tight', sans-serif;
+  font-size: 40px; font-weight: 700;
+  color: var(--side-soft, var(--text));
+  background: linear-gradient(180deg, var(--side-24, rgba(255,255,255,.08)), transparent);
+}
+
+.board__center {
+  position: relative;
+  width: 150px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #120C26, #1A1236);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.board__clock {
+  font-family: Unbounded, sans-serif;
+  font-size: 30px; font-weight: 700; line-height: 1;
+}
+.board__clock.is-low { color: var(--danger); }
+.board__clock.is-freeze { color: var(--lime); }
+.board__round {
+  margin-top: 7px;
+  font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.board__bomb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: Unbounded, sans-serif; font-size: 30px; font-weight: 700; line-height: 1;
+  color: var(--danger);
+  animation: bombPulse 1s ease-in-out infinite;
+}
+.board__bomb .ico { font-size: 24px; }
+.board__center.is-bomb { background: linear-gradient(180deg, #2A0711, #3B0A18); }
+.board__center.is-bomb .board__round { color: #FF9AA8; }
+@keyframes bombPulse { 50% { opacity: .6; } }
+
+.board__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.06); }
+.board__bar i { display: block; height: 100%; width: 0; background: var(--lime); }
+.board__center.is-bomb .board__bar i { background: linear-gradient(90deg, #FF2747, #FF7B47); box-shadow: 0 0 12px rgba(255,60,80,.8); }
+
+.subbar {
+  position: absolute;
+  top: 82px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 18px;
+  font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: #C9C0EC;
+  background: var(--glass-2);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+  white-space: nowrap;
+}
+.subbar i { width: 4px; height: 4px; background: var(--lime); transform: rotate(45deg); }
+
+/* ======================================================= ПЛАШКА СОБЫТИЯ */
+
+.event {
+  position: absolute;
+  top: 118px; left: 50%; transform: translateX(-50%);
+  min-width: 520px;
+  padding: 12px 34px 14px;
+  text-align: center;
+  background: var(--glass);
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 100%, 0 100%);
+  animation: dropIn .35s cubic-bezier(.2,.8,.3,1);
+  overflow: hidden;
+}
+.event::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--side-40, rgba(108,77,255,.45)), transparent);
+  opacity: .9;
+}
+.event > * { position: relative; }
+.event__title {
+  font-family: Unbounded, sans-serif;
+  font-size: 26px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--side-soft, var(--text));
+}
+.event__sub { margin-top: 3px; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #D9D2F5; }
+.event__bar { height: 5px; margin-top: 10px; background: rgba(255,255,255,.1); }
+.event__bar i { display: block; height: 100%; width: 0; background: var(--ct); box-shadow: 0 0 12px var(--ct); }
+.event--danger { --side: var(--danger); --side-soft: #FFC3CB; --side-40: rgba(255,74,94,.45); }
+.event--neutral { --side: var(--brand-a); --side-soft: #fff; --side-40: rgba(108,77,255,.45); }
+@keyframes dropIn { from { opacity: 0; transform: translateX(-50%) translateY(-12px); } }
+
+/* ======================================================= ИГРОКИ */
+
+.team-col {
+  position: absolute;
+  bottom: calc(var(--edge) + var(--lift));
+  width: 452px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.team-col--a { left: var(--edge); }
+.team-col--b { right: var(--edge); }
+
+.card {
+  position: relative;
+  height: 62px;
+  display: grid;
+  grid-template-columns: 30px 52px 1fr auto;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas: "slot hp name money" "slot hp gear kd";
+  column-gap: 10px;
+  padding: 7px 14px 9px 0;
+  background: var(--glass);
+  overflow: hidden;
+  transition: transform .25s cubic-bezier(.2,.8,.3,1), opacity .3s;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+.team-col--b .card {
+  grid-template-columns: auto 1fr 52px 30px;
+  grid-template-areas: "money name hp slot" "kd gear hp slot";
+  padding: 7px 0 9px 14px;
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* фон карточки заполняется цветом стороны по здоровью */
+.card__fill {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: 100%;
+  background: linear-gradient(90deg, var(--side-34), var(--side-08));
+  transform-origin: left center;
+  transition: transform .35s cubic-bezier(.4,0,.2,1);
+}
+.card__trail {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 100%;
+  background: rgba(255,255,255,.16);
+  transform-origin: left center;
+  transition: transform .9s cubic-bezier(.4,0,.2,1) .25s;
+}
+.team-col--b .card__fill,
+.team-col--b .card__trail { transform-origin: right center; left: auto; right: 0; }
+.team-col--b .card__fill { background: linear-gradient(270deg, var(--side-34), var(--side-08)); }
+
+.card > :not(.card__fill):not(.card__trail):not(.card__flash) { position: relative; z-index: 1; }
+
+.card__slot {
+  grid-area: slot;
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 700;
+  color: #0A0816;
+  background: var(--side);
+}
+.card__hp {
+  grid-area: hp;
+  align-self: center;
+  font-family: Unbounded, sans-serif;
+  font-size: 23px; font-weight: 700; text-align: center;
+}
+.card__hp.is-low { color: var(--danger); }
+.card__name {
+  grid-area: name;
+  display: flex; align-items: center; gap: 7px;
+  min-width: 0;
+  font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+}
+.team-col--b .card__name { justify-content: flex-end; }
+.card__nick { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card__rk { display: flex; gap: 1px; color: var(--lime); font-size: 13px; }
+.team-col--b .card__rk { order: -1; }
+.card__money {
+  grid-area: money;
+  align-self: center;
+  font-size: 16px; font-weight: 700;
+  color: #9BF5B5;
+}
+.card__gear {
+  grid-area: gear;
+  display: flex; align-items: center; gap: 7px;
+  min-width: 0;
+  font-size: 13px; font-weight: 600;
+  color: #D4CCF0;
+}
+.team-col--b .card__gear { flex-direction: row-reverse; }
+.card__armor { color: #E6E1FA; font-size: 15px; }
+.card__armor.is-none { opacity: .2; }
+.card__weapon { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card__nades { display: flex; gap: 2px; font-size: 15px; color: #C8C0EA; }
+.card__item { font-size: 16px; }
+.card__item--bomb { color: var(--danger); filter: drop-shadow(0 0 6px rgba(255,74,94,.7)); }
+.card__item--kit { color: var(--ct); }
+.card__kd { grid-area: kd; align-self: center; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.card__kd b { color: var(--text); font-weight: 700; }
+
+.card__flash {
+  position: absolute; inset: 0; z-index: 2;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s;
+}
+
+/* смерть */
+.card.is-dead { opacity: .62; }
+.card.is-dead .card__slot { background: rgba(255,255,255,.18); color: var(--muted); }
+.card.is-dead .card__hp { color: var(--muted); font-size: 18px; }
+.card.is-dead .card__nick { color: var(--muted); }
+.card.is-dead .card__money { color: #6E8F78; }
+
+/* камера на этом игроке */
+.card.is-observed { box-shadow: inset 0 0 0 2px var(--side); }
+.team-col--a .card.is-observed { transform: translateX(12px); }
+.team-col--b .card.is-observed { transform: translateX(-12px); }
+
+/* ======================================================= ЭКОНОМИКА */
+
+.econ {
+  position: absolute;
+  bottom: calc(var(--edge) + var(--lift) + 5 * 62px + 4 * 5px + 10px);
+  width: 452px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px;
+  background: var(--line);
+  animation: riseIn .3s cubic-bezier(.2,.8,.3,1);
+}
+.econ--a { left: var(--edge); }
+.econ--b { right: var(--edge); }
+.econ__cell { padding: 8px 12px; background: var(--glass); }
+.econ__label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.econ__value { margin-top: 2px; font-size: 19px; font-weight: 700; }
+.econ__value--money { color: #9BF5B5; }
+.econ__buy {
+  grid-column: 1 / -1;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 12px;
+  font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: #0A0816;
+  background: var(--side);
+}
+.econ__buy span { font-size: 11px; letter-spacing: .04em; opacity: .75; }
+@keyframes riseIn { from { opacity: 0; } }
+
+/* ======================================================= ИГРОК В КАМЕРЕ */
+
+.focus {
+  position: absolute;
+  left: 50%; bottom: calc(var(--edge) + var(--lift));
+  transform: translateX(-50%);
+  width: 660px;
+  background: var(--glass);
+  clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 14px 30px rgba(0,0,0,.5));
+}
+.focus__top {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 26px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.focus__slot {
+  min-width: 26px; height: 26px; padding: 0 6px;
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 700; color: #0A0816;
+  background: var(--side);
+  transform: skewX(-12deg);
+}
+.focus__name { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
+.focus__team { font-size: 12px; font-weight: 600; color: var(--side-soft); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.focus__stats { display: flex; gap: 16px; margin-left: auto; }
+.focus__stats div { display: flex; flex-direction: column; align-items: center; min-width: 30px; }
+.focus__stats b { font-size: 19px; font-weight: 700; line-height: 1.1; }
+.focus__stats span { font-size: 9px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }
+
+.focus__bottom {
+  display: flex; align-items: center; gap: 22px;
+  padding: 9px 26px 13px;
+}
+.focus__hp, .focus__armor { display: flex; align-items: center; gap: 7px; }
+.focus__hp .ico { color: var(--side); font-size: 18px; }
+.focus__armor .ico { color: #E6E1FA; font-size: 18px; }
+.focus__armor.is-none { opacity: .25; }
+.focus__hp b, .focus__armor b { font-family: Unbounded, sans-serif; font-size: 26px; font-weight: 700; }
+.focus__hp.is-low b { color: var(--danger); }
+.focus__weapon { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
+.focus__weapon span { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.focus__weapon b { font-size: 17px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.focus__weapon b em { font-style: normal; font-size: 22px; color: var(--text); font-weight: 700; }
+.focus__gear { display: flex; gap: 3px; font-size: 18px; color: #C8C0EA; }
+.focus__money { font-size: 18px; font-weight: 700; color: #9BF5B5; }
+.focus__hpbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.07); }
+.focus__hpbar i { display: block; height: 100%; width: 100%; background: var(--side); box-shadow: 0 0 10px var(--side); transition: width .3s; }
+
+/* ======================================================= ИСТОРИЯ РАУНДОВ */
+
+.history { display: flex; align-items: center; gap: 3px; }
+.history--float {
+  position: absolute;
+  top: 118px; left: 50%; transform: translateX(-50%);
+  padding: 8px 14px;
+  background: var(--glass-2);
+}
+.hr {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  font-size: 15px;
+  background: rgba(255,255,255,.05);
+  color: rgba(255,255,255,.14);
+}
+.hr.is-ct { background: rgba(90,169,255,.28); color: var(--ct-soft); box-shadow: inset 0 -2px 0 var(--ct); }
+.hr.is-t  { background: rgba(245,181,58,.26); color: var(--t-soft); box-shadow: inset 0 -2px 0 var(--t); }
+.hr.is-current { outline: 1px solid var(--lime); outline-offset: 1px; }
+.hr-split { width: 2px; height: 30px; margin: 0 5px; background: var(--lime); opacity: .55; }
+.hr-team { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); width: 46px; flex: 0 0 46px; text-align: right; padding-right: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ======================================================= ЛЕНТА УБИЙСТВ */
+
+.feed {
+  position: absolute;
+  top: 120px; right: var(--edge);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+}
+.kill {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 14px;
+  font-size: 16px; font-weight: 700;
+  background: var(--glass);
+  animation: slideIn .25s cubic-bezier(.2,.8,.3,1);
+  transition: opacity .6s;
+}
+.kill.is-old { opacity: 0; }
+.kill .is-ct { color: var(--ct-soft); }
+.kill .is-t { color: var(--t-soft); }
+.kill__weapon { font-size: 12px; font-weight: 600; color: var(--muted); padding: 2px 7px; background: rgba(255,255,255,.06); }
+.kill__hs { color: var(--danger); font-size: 16px; }
+.kill__assist { font-size: 13px; font-weight: 600; opacity: .8; }
+.kill--world .kill__victim { color: var(--muted); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(16px); } }
+
+/* ======================================================= ТАБЛИЦА ИГРОКОВ */
+
+.stats-float {
+  position: absolute;
+  left: 50%; top: 160px;
+  transform: translateX(-50%);
+  width: 1240px;
+  animation: riseIn .3s cubic-bezier(.2,.8,.3,1);
+}
+.st-team { text-align: left; background: var(--glass); backdrop-filter: blur(12px); margin-bottom: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+.st-team__head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 22px;
+  border-top: 3px solid var(--side);
+  border-bottom: 1px solid var(--line);
+}
+.st-team__name { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+.st-team__score { font-family: Unbounded, sans-serif; font-size: 26px; font-weight: 700; color: var(--side-soft); }
+.st-row, .st-cols {
+  display: grid;
+  grid-template-columns: 34px 1fr 70px 70px 70px 76px 80px 80px 70px 110px;
+  align-items: center; gap: 8px;
+  padding: 8px 22px;
+}
+.st-cols { padding-top: 7px; padding-bottom: 7px; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+.st-cols span:not(:nth-child(2)), .st-row > div:not(.st-name) { text-align: center; }
+.st-row + .st-row { border-top: 1px solid rgba(160,138,255,.07); }
+.st-row { font-size: 18px; font-weight: 600; }
+.st-row.is-dead { opacity: .55; }
+.st-slot { font-size: 13px; font-weight: 700; color: #0A0816; background: var(--side); height: 24px; display: grid; place-items: center; transform: skewX(-12deg); }
+.st-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-pos { color: #9BF5B5; }
+.st-neg { color: #FF9AA8; }
+.st-adr { color: var(--lime); font-weight: 700; }
+.st-money { color: #9BF5B5; }
+
+/* ======================================================= КОММЕНТАТОРЫ */
+
+.casters {
+  position: absolute;
+  left: var(--edge); top: 24px;
+  padding: 12px 30px 14px 26px;
+  background: var(--glass);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+  animation: riseIn .3s cubic-bezier(.2,.8,.3,1);
+}
+.casters::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--brand-a), var(--brand-b)); }
+.casters__topic { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.casters__names { display: flex; align-items: center; gap: 14px; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.casters__sep { width: 6px; height: 6px; background: var(--lime); transform: rotate(45deg); }
+
+/* ======================================================= БЕГУЩАЯ СТРОКА */
+
+.ticker {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 36px;
+  display: flex; align-items: center; gap: 16px;
+  padding-right: 30px;
+  background: linear-gradient(90deg, rgba(15,11,30,.96), rgba(15,11,30,.82));
+  border-top: 1px solid var(--line);
+  font-size: 15px; font-weight: 500; color: #D6CEF5;
+  white-space: nowrap; overflow: hidden;
+}
+.ticker__tag {
+  align-self: stretch; display: grid; place-items: center;
+  padding: 0 18px 0 24px;
+  font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(90deg, var(--brand-a), var(--brand-b));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+
+/* ======================================================= ПОЛНОЭКРАННЫЕ СЦЕНЫ */
+
+.layer-full.pane {
+  background:
+    radial-gradient(90% 70% at 20% 8%, rgba(108,77,255,.30), transparent 60%),
+    radial-gradient(70% 60% at 85% 95%, rgba(255,61,138,.22), transparent 62%),
+    radial-gradient(40% 40% at 50% 50%, rgba(90,169,255,.07), transparent 70%),
+    linear-gradient(180deg, #0B0818, #05040C);
+}
+.layer-full.pane::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.34'/%3E%3C/svg%3E");
+}
+.pane {
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; text-align: center;
+}
+.pane > * { position: relative; z-index: 1; }
+.pane__eyebrow { font-size: 14px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--lime); }
+.pane__title {
+  font-family: Unbounded, 'Inter Tight', sans-serif;
+  font-size: 76px; font-weight: 800; line-height: 1.04; letter-spacing: -0.035em;
+  max-width: 1400px;
+  background: linear-gradient(100deg, #FFFFFF 18%, #C8B6FF 52%, #FF8FBC 88%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.pane__title--sm { font-size: 46px; }
+.pane__sub { font-size: 22px; font-weight: 500; color: #B4AAD9; max-width: 900px; }
+.pane__countdown {
+  margin-top: 6px;
+  font-family: Unbounded, sans-serif; font-size: 92px; font-weight: 700;
+  color: var(--lime); text-shadow: 0 0 60px rgba(216,255,62,.3);
+}
+.pane__format { margin-top: 10px; font-size: 14px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+
+.versus { display: flex; align-items: center; gap: 34px; margin-top: 34px; }
+.versus__team {
+  display: flex; align-items: center; gap: 18px;
+  min-width: 460px; padding: 16px 28px;
+  background: var(--glass);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+  font-size: 34px; font-weight: 700; letter-spacing: -0.02em;
+  border-left: 4px solid var(--brand-a);
+}
+.versus__team--b { justify-content: flex-end; clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%); border-left: 0; border-right: 4px solid var(--brand-b); }
+.versus__logo { width: 56px; height: 56px; flex: 0 0 56px; background: center / contain no-repeat; }
+.versus__logo:not([style*="url"]) { display: none; }
+.versus__mark { font-family: Unbounded, sans-serif; font-size: 30px; font-weight: 800; color: var(--lime); transform: skewX(-12deg); }
+
+.break__series { display: flex; gap: 14px; margin-top: 30px; }
+
+/* мини-карточки карт серии — заставки перерыва и итога */
+.mini-map {
+  min-width: 200px;
+  padding: 12px 18px;
+  background: var(--glass);
+  border-top: 3px solid rgba(255,255,255,.15);
+  text-align: left;
+}
+.mini-map.is-done { border-top-color: var(--lime); }
+.mini-map.is-current { border-top-color: var(--brand-b); }
+.mini-map__name { font-size: 20px; font-weight: 700; }
+.mini-map__info { margin-top: 3px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.mini-map__info b { color: var(--lime); }
+
+/* итог карты */
+.result__logo { width: 120px; height: 120px; background: center / contain no-repeat; }
+.result__logo:not([style*="url"]) { display: none; }
+.result__map { font-family: Unbounded, sans-serif; font-size: 56px; font-weight: 700; letter-spacing: .04em; }
+.result__map span { font-size: 18px; font-weight: 600; letter-spacing: .14em; color: var(--muted); display: block; margin-bottom: 6px; font-family: 'Inter Tight', sans-serif; text-transform: uppercase; }
+.result__series { display: flex; gap: 14px; margin-top: 10px; }
+
+/* ======================================================= ВЕТО КАРТ */
+
+.pane--veto { padding: 70px 90px; }
+.veto { display: flex; gap: 22px; margin-top: 30px; justify-content: center; }
+.vmap {
+  position: relative;
+  width: 340px; height: 470px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 26px 24px;
+  text-align: left;
+  overflow: hidden;
+  background: #120C26 center / cover no-repeat;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+  box-shadow: 0 26px 60px rgba(0,0,0,.5);
+  animation: riseIn .45s cubic-bezier(.2,.8,.3,1) both;
+}
+.vmap::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(6,5,13,.1) 0%, rgba(6,5,13,.55) 45%, rgba(6,5,13,.96) 100%);
+}
+.vmap > * { position: relative; }
+.vmap__num { position: absolute; top: 22px; left: 24px; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 700; color: rgba(255,255,255,.55); }
+.vmap__badge {
+  position: absolute; top: 20px; right: 20px;
+  padding: 4px 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: #0A0816; background: var(--lime);
+}
+.vmap__badge--live { background: var(--brand-b); color: #fff; animation: bombPulse 1.4s infinite; }
+.vmap__pick { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #CFC6F2; }
+.vmap__name { margin-top: 6px; font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.02em; }
+.vmap__score { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.14); }
+.vmap__team { font-size: 16px; font-weight: 700; letter-spacing: .04em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+.vmap__team.is-win { color: var(--text); font-weight: 700; }
+.vmap__nums { font-family: Unbounded, sans-serif; font-size: 26px; font-weight: 700; white-space: nowrap; }
+.vmap__nums .is-win { color: var(--lime); }
+.vmap--done { opacity: .9; }
+.vmap--live { box-shadow: 0 0 0 2px var(--brand-b), 0 26px 60px rgba(0,0,0,.5); }
+.vmap--tbd .vmap__name { color: rgba(255,255,255,.6); }
+
+/* фон карточки карты: картинка из assets/maps или фирменный градиент */
+.vmap[data-map="de_mirage"]   { background-color: #3A2A1A; }
+.vmap[data-map="de_inferno"]  { background-color: #4A2016; }
+.vmap[data-map="de_nuke"]     { background-color: #18324A; }
+.vmap[data-map="de_ancient"]  { background-color: #1E3A2A; }
+.vmap[data-map="de_anubis"]   { background-color: #3A3218; }
+.vmap[data-map="de_dust2"]    { background-color: #4A3A1E; }
+.vmap[data-map="de_train"]    { background-color: #2A2E36; }
+.vmap[data-map="de_overpass"] { background-color: #20363A; }
+.vmap[data-map="de_vertigo"]  { background-color: #26304A; }
+
+/* ======================================================= ТАБЛИЦА СЧЁТА (СЦЕНА) */
+
+.pane--scoreboard { justify-content: flex-start; align-items: stretch; padding: 50px 80px; gap: 0; }
+.sb-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 30px; padding-bottom: 22px; }
+.sb-head__team { display: flex; align-items: center; gap: 22px; font-size: 38px; font-weight: 700; letter-spacing: -0.02em; }
+.sb-head__team--b { justify-content: flex-end; }
+.sb-head__team b { font-family: Unbounded, sans-serif; font-size: 64px; color: var(--side-soft, var(--text)); }
+.sb-head__mid { text-align: center; }
+.sb-head__map { font-family: Unbounded, sans-serif; font-size: 26px; font-weight: 700; letter-spacing: .02em; }
+.sb-head__round { margin-top: 4px; font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.history--wide { justify-content: center; padding: 14px 0 22px; border-top: 1px solid var(--line); }
+.history--wide .hr { width: 34px; height: 34px; font-size: 18px; }
+.history--wide .hr-team { width: 70px; flex-basis: 70px; font-size: 13px; }
+.sb-body .st-team { margin-bottom: 18px; }
+.sb-body .st-row { font-size: 20px; padding-top: 10px; padding-bottom: 10px; }
+
+/* ======================================================= СЕТКА */
+
+.pane--bracket { padding: 60px 90px; }
+.bracket { display: flex; gap: 50px; margin-top: 34px; justify-content: center; align-items: stretch; }
+.round { display: grid; grid-template-rows: auto 1fr; min-width: 396px; }
+.round__name { font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); padding-bottom: 14px; }
+.round__matches { display: flex; flex-direction: column; justify-content: center; gap: 24px; }
+.match {
+  position: relative;
+  background: var(--glass);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45);
+}
+.match::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--brand-a), var(--brand-b)); }
+.match__row { display: flex; justify-content: space-between; gap: 18px; padding: 14px 22px 14px 24px; font-size: 25px; font-weight: 500; }
+.match__row + .match__row { border-top: 1px solid var(--line); }
+.match__row--won { font-weight: 700; }
+.match__row--won .match__score { color: var(--lime); }
+.match__score { color: var(--muted); font-weight: 700; }
+.bracket__empty { font-size: 20px; color: var(--muted); }
+
+/* ======================================================= TRIVIA */
+
+.trivia {
+  position: absolute; z-index: 15;
+  left: 50%; bottom: calc(190px + var(--lift)); transform: translateX(-50%);
+  width: 740px; padding: 20px 32px;
+  text-align: center;
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  border-top: 3px solid var(--lime);
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px));
+  animation: riseIn .3s cubic-bezier(.2,.8,.3,1);
+}
+.trivia__tag { font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); }
+.trivia__title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-top: 6px; }
+.trivia__text { font-size: 17px; color: #C9BFE8; margin-top: 6px; line-height: 1.4; }
+
+/* ======================================================= ФОНЫ-КАРТИНКИ */
+
+.layer-full.has-bg { background: #05040C var(--scene-bg) center / cover no-repeat; }
+.layer-full.has-bg::after { display: none; }
+.layer-full.bg-only > * { visibility: hidden; }
+/* фон-видео из общего пульта: под содержимым сцены */
+.layer-full.has-video { isolation: isolate; }
+.scene-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+.layer-full.bg-only > .scene-video { visibility: visible; }
+
+/* ======================================================= ТАЙМЕР ПОВЕРХ СЦЕН */
+
+.cd {
+  position: absolute; z-index: 20;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  padding: 12px 26px 12px 30px;
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
+  animation: riseIn .3s cubic-bezier(.2,.8,.3,1);
+}
+.cd::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--brand-a), var(--brand-b)); }
+.cd__label { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.cd__time { font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 700; line-height: 1.1; color: var(--lime); text-shadow: 0 0 30px rgba(216,255,62,.25); }
+.cd--done .cd__time { font-size: 30px; }
+.cd[data-pos="top-right"]     { top: 120px; right: var(--edge); }
+.cd[data-pos="top-left"]      { top: 24px; left: var(--edge); align-items: flex-start; }
+.cd[data-pos="bottom-center"] { bottom: calc(190px + var(--lift)); left: 50%; transform: translateX(-50%); align-items: center; }
+.cd[data-pos="center"]        { top: 50%; left: 50%; transform: translate(-50%, -50%); align-items: center; padding: 26px 56px; }
+.cd[data-pos="center"] .cd__label { font-size: 18px; }
+.cd[data-pos="center"] .cd__time  { font-size: 96px; }
+
+/* ======================================================= СЛУЖЕБНОЕ */
+
+.conn { position: absolute; right: 14px; bottom: 14px; z-index: 30; padding: 6px 12px; background: var(--danger); color: #2A0512; font-size: 12px; font-weight: 700; }
+body.is-connected .conn, body.obs .conn { display: none; }
+.nodata {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  padding: 10px 18px; background: var(--glass-2); color: var(--muted);
+  font-size: 15px; font-weight: 600;
+}
+body.obs .nodata { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before { animation: none !important; transition: none !important; }
+}

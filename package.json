@@ -1,7 +1,7 @@
 {
   "name": "dota2-tournament-hud",
   "version": "1.0.0",
-  "description": "Broadcast HUD and overlay pack for a student Dota 2 tournament",
+  "description": "Broadcast HUD and overlay pack for student Dota 2 and CS2 tournaments",
   "private": true,
   "type": "commonjs",
   "main": "server/index.js",
@@ -11,7 +11,10 @@
     "mock:draft": "node tools/mock-gsi.js --draft",
     "mock:end": "node tools/mock-gsi.js --end",
     "mock:fast": "node tools/mock-gsi.js --speed=10 --pause",
-    "mock:obs": "node tools/mock-obs.js"
+    "mock:obs": "node tools/mock-obs.js",
+    "mock:cs2": "node tools/mock-cs2.js",
+    "mock:cs2:half": "node tools/mock-cs2.js --round=11",
+    "mock:pick": "node tools/mock-gsi.js --draft --speed=4 --match=7912345678"
   },
   "dependencies": {
     "@fontsource/inter-tight": "^5.3.0",

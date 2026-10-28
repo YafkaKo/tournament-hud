@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пульт трансляции CS2</title>
+<link rel="icon" href="data:,">
+<script src="/js/game-scope.js" data-game="cs2"></script>
+<script>
+  // Пульт CS2 живёт внутри общего пульта. Открыли напрямую — переходим туда.
+  if (!window.HUD_EMBEDDED && !/standalone=1/.test(location.search)) location.replace('/control.html');
+</script>
+<link rel="stylesheet" href="css/control.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top__title">
+    <h1>Пульт трансляции <span>CS2</span></h1>
+    <p class="hint">Всё, что вы меняете, сразу уходит в эфир. Сохранять не нужно. Хоткеи работают, пока эта вкладка в фокусе и курсор не стоит в поле ввода.</p>
+  </div>
+  <div class="status">
+    <span class="pill" id="pillWs"><i></i>сервер</span>
+    <span class="pill" id="pillGsi"><i></i>данные из игры</span>
+    <span class="pill pill--info" id="pillMatch">—</span>
+  </div>
+</header>
+
+<main class="layout">
+
+<!-- ======================================================= ЛЕВАЯ КОЛОНКА: ЭФИР -->
+<aside class="live">
+  <section class="card">
+    <h2>Что в эфире</h2>
+    <div class="scenes" id="scenes">
+      <button data-scene="auto"><b>Игра</b><kbd>Alt+1</kbd></button>
+      <button data-scene="starting"><b>Скоро начнём</b><kbd>Alt+2</kbd></button>
+      <button data-scene="break"><b>Перерыв</b><kbd>Alt+3</kbd></button>
+      <button data-scene="bracket"><b>Сетка</b><kbd>Alt+4</kbd></button>
+      <button data-scene="results"><b>Итог карты</b><kbd>Alt+5</kbd></button>
+      <button data-scene="scoreboard"><b>Таблица счёта</b><kbd>Alt+6</kbd></button>
+      <button data-scene="veto"><b>Пики карт</b><kbd>Alt+7</kbd></button>
+      <button data-scene="blank"><b>Чистый экран</b><kbd>Alt+0</kbd></button>
+    </div>
+
+    <div class="preview" id="preview">
+      <iframe src="overlay.html?obs=1" title="Превью эфира" tabindex="-1"></iframe>
+      <span class="preview__label">превью эфира</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Поверх игры</h2>
+    <div class="toggles">
+      <label class="tgl"><input type="checkbox" data-path="showHud"><span>Вся графика</span><kbd>Alt+H</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="panels.stats"><span>Таблица игроков</span><kbd>Alt+R</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="panels.rounds"><span>История раундов</span><kbd>Alt+M</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="panels.economy"><span>Экономика в закупку</span><kbd>Alt+B</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="casters.show"><span>Комментаторы</span><kbd>Alt+K</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="trivia.show"><span>Trivia</span><kbd>Alt+T</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="countdown.show"><span>Таймер «скоро начнётся»</span><kbd>Alt+C</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="panels.killfeed"><span>Своя лента убийств</span><kbd>Alt+L</kbd></label>
+      <label class="tgl"><input type="checkbox" data-path="panels.players"><span>Карточки игроков</span></label>
+      <label class="tgl"><input type="checkbox" data-path="panels.observed"><span>Игрок в камере</span></label>
+      <label class="tgl"><input type="checkbox" data-path="panels.roundResult"><span>Плашка итога раунда</span></label>
+    </div>
+  </section>
+
+  <section class="card card--keys">
+    <h2>Шпаргалка по хоткеям</h2>
+    <dl class="keys">
+      <dt>Alt+1…7, Alt+0</dt><dd>сцены</dd>
+      <dt>Alt+H</dt><dd>спрятать / вернуть всю графику</dd>
+      <dt>Alt+R</dt><dd>таблица игроков поверх игры</dd>
+      <dt>Alt+M</dt><dd>история раундов</dd>
+      <dt>Alt+B</dt><dd>экономика в закупку</dd>
+      <dt>Alt+K</dt><dd>плашка комментаторов</dd>
+      <dt>Alt+T / Alt+N</dt><dd>trivia / следующий факт</dd>
+      <dt>Alt+C</dt><dd>таймер «скоро начнётся»</dd>
+      <dt>Alt+L</dt><dd>своя лента убийств</dd>
+      <dt>Alt+↑ / Alt+↓</dt><dd>+1 / −1 к таймеру</dd>
+    </dl>
+  </section>
+</aside>
+
+<!-- ======================================================= ПРАВАЯ ЧАСТЬ -->
+<div class="cards">
+
+<section class="card">
+  <h2>Матч</h2>
+  <label class="field"><span>Турнир</span><input data-path="tournament"></label>
+  <label class="field"><span>Стадия</span><input data-path="stage"></label>
+
+  <div class="teams">
+    <div class="team-edit">
+      <div class="team-edit__head">Слева</div>
+      <label class="field"><span>Название</span><input data-path="teamA.name"></label>
+      <label class="field"><span>Тег (3–4 буквы)</span><input data-path="teamA.tag" maxlength="5"></label>
+      <div class="logo-row">
+        <div class="logo-prev" id="logoPrevA"></div>
+        <label class="btn btn--ghost">Логотип…<input type="file" accept="image/*" data-logo="A" hidden></label>
+        <button class="btn btn--ghost" data-logo-clear="A">Убрать</button>
+      </div>
+    </div>
+    <div class="team-edit">
+      <div class="team-edit__head">Справа</div>
+      <label class="field"><span>Название</span><input data-path="teamB.name"></label>
+      <label class="field"><span>Тег (3–4 буквы)</span><input data-path="teamB.tag" maxlength="5"></label>
+      <div class="logo-row">
+        <div class="logo-prev" id="logoPrevB"></div>
+        <label class="btn btn--ghost">Логотип…<input type="file" accept="image/*" data-logo="B" hidden></label>
+        <button class="btn btn--ghost" data-logo-clear="B">Убрать</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <label class="field field--narrow">
+      <span>Формат</span>
+      <select data-path="series.format">
+        <option value="bo1">Bo1</option>
+        <option value="bo2">Bo2</option>
+        <option value="bo3">Bo3</option>
+        <option value="bo5">Bo5</option>
+      </select>
+    </label>
+    <div class="field">
+      <span>Счёт серии</span>
+      <div class="counter">
+        <button class="btn" data-action="series-a-">−</button>
+        <b id="aWins">0</b>
+        <button class="btn" data-action="series-a+">+</button>
+        <em>:</em>
+        <button class="btn" data-action="series-b-">−</button>
+        <b id="bWins">0</b>
+        <button class="btn" data-action="series-b+">+</button>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <button class="btn btn--accent" id="finishMap">Карта сыграна: записать счёт</button>
+    <button class="btn btn--ghost" id="swapTeams">Поменять команды местами</button>
+  </div>
+  <p class="hint">«Карта сыграна» берёт счёт из игры, отмечает победителя в списке карт и прибавляет ему очко серии.</p>
+  <p class="msg" id="matchMsg" hidden></p>
+</section>
+
+<section class="card">
+  <h2>Стороны CT / T</h2>
+  <div class="sides-now" id="sidesNow">Данных из игры пока нет</div>
+  <label class="field">
+    <span>Команда слева начинает карту за</span>
+    <select data-path="sides.aStart">
+      <option value="CT">CT (синие)</option>
+      <option value="T">T (жёлтые)</option>
+    </select>
+  </label>
+  <p class="hint">Нужно только для самой первой карты. Сервер запоминает игроков по Steam ID и дальше сам знает,
+     где какая команда: смена сторон в перерыве, в овертайме и на следующих картах серии отрабатывается без вас.
+     Если сервер CS2 знает названия команд (<code>mp_teamname_1</code> / <code>_2</code>) и они совпадают с названиями здесь — берутся они.</p>
+  <div class="row">
+    <button class="btn" data-action="sides-swap">Поменять стороны</button>
+    <button class="btn btn--ghost" id="resetPlayers">Определить игроков заново</button>
+  </div>
+</section>
+
+<section class="card card--wide">
+  <h2>Карты серии <span class="h2-hint">для сцены «Пики карт» и мини-счёта на заставках</span></h2>
+  <div class="maps-head"><span>#</span><span>Карта</span><span>Чей пик</span><span>Счёт слева</span><span>Счёт справа</span><span>Победитель</span><span></span></div>
+  <div class="maps" id="maps"></div>
+  <div class="row">
+    <button class="btn btn--ghost" id="addMap">+ Добавить карту</button>
+    <button class="btn btn--ghost" data-action="scene-veto">Показать пики в эфире</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Заставки</h2>
+  <label class="field"><span>Заголовок «Скоро начнём»</span><input data-path="starting.title"></label>
+  <label class="field"><span>Подпись</span><input data-path="starting.subtitle"></label>
+  <label class="field"><span>Текст перерыва</span><input data-path="breakText"></label>
+  <label class="field"><span>Бегущая строка внизу (в сцене «Игра»)</span><input data-path="ticker" placeholder="пусто — выключена"></label>
+</section>
+
+<section class="card">
+  <h2>Таймер «Матч скоро начнётся» <kbd>Alt+C</kbd></h2>
+  <p class="hint">Поверх любой сцены. На заставке «Скоро начнём» — крупно по центру. Скрытие не сбрасывает отсчёт.</p>
+  <div class="row quick">
+    <button class="btn btn--ghost" data-cd-min="3">3 мин</button>
+    <button class="btn btn--ghost" data-cd-min="5">5 мин</button>
+    <button class="btn btn--ghost" data-cd-min="10">10 мин</button>
+    <button class="btn btn--ghost" data-cd-min="15">15 мин</button>
+    <button class="btn btn--ghost" data-cd-add="1">+1</button>
+    <button class="btn btn--ghost" data-cd-add="-1">−1</button>
+  </div>
+  <label class="field"><span>Отсчёт до</span><input type="datetime-local" data-path="countdown.to" data-type="datetime"></label>
+  <div class="row">
+    <label class="field"><span>Надпись</span><input data-path="countdown.label"></label>
+    <label class="field"><span>Когда время вышло</span><input data-path="countdown.doneText"></label>
+  </div>
+  <label class="field">
+    <span>Где на экране</span>
+    <select data-path="countdown.position">
+      <option value="top-right">Справа под табло</option>
+      <option value="top-left">Слева сверху</option>
+      <option value="bottom-center">Снизу по центру</option>
+      <option value="center">По центру, крупно</option>
+    </select>
+  </label>
+</section>
+
+<section class="card">
+  <h2>Комментаторы <kbd>Alt+K</kbd></h2>
+  <div class="row">
+    <label class="field"><span>Первый</span><input data-path="casters.left"></label>
+    <label class="field"><span>Второй</span><input data-path="casters.right"></label>
+  </div>
+  <label class="field"><span>Подпись над именами</span><input data-path="casters.topic" placeholder="Комментируют"></label>
+</section>
+
+<section class="card">
+  <h2>Итог карты — заставка <kbd>Alt+5</kbd></h2>
+  <p class="hint">Победитель подставляется сам после «Карта сыграна». Счёт карты — из списка карт серии.</p>
+  <div class="row">
+    <label class="field field--narrow">
+      <span>Победитель</span>
+      <select data-path="results.winner" id="resultWinner">
+        <option value="A">Слева</option>
+        <option value="B">Справа</option>
+      </select>
+    </label>
+    <label class="field"><span>Подпись (пусто — счёт серии)</span><input data-path="results.note"></label>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Trivia <kbd>Alt+T</kbd> <kbd>Alt+N</kbd></h2>
+  <p class="hint">Плашка «Знаете ли вы» поверх любой сцены — заполнить паузу. Можно заготовить факты списком
+     (по одному на строку, заголовок и текст через «|») и листать их кнопкой или <kbd>Alt+N</kbd>.</p>
+  <label class="field"><span>Заголовок</span><input data-path="trivia.title"></label>
+  <label class="field"><span>Текст</span><input data-path="trivia.text"></label>
+  <label class="field"><span>Заготовки</span><textarea data-path="trivia.list" rows="4" placeholder="Рекорд арены | Самый длинный матч длился 3 овертайма&#10;Mirage | Самая популярная карта турнира"></textarea></label>
+  <div class="row"><button class="btn" id="nextTrivia">Следующий факт и показать</button><span class="hint" id="triviaPos"></span></div>
+</section>
+
+<section class="card card--wide">
+  <h2>Фоны сцен</h2>
+  <p class="hint">Картинка 1920×1080 (PNG, JPG, WebP, GIF) заменяет фон сцены. «Только картинка» прячет текст — весь дизайн берётся
+     из изображения; таймер и Trivia остаются поверх. Файлы ложатся в <code>public/assets/backgrounds</code>.</p>
+  <div class="bgs" id="bgs"></div>
+</section>
+
+<section class="card card--wide">
+  <h2>Турнирная сетка <kbd>Alt+4</kbd></h2>
+  <p class="hint">JSON: массив раундов, в каждом — матчи с двумя сторонами. Формат тот же, что у HUD для Dota 2.</p>
+  <textarea id="bracketJson" spellcheck="false" rows="8"></textarea>
+  <div class="row">
+    <button class="btn btn--accent" id="applyBracket">Показать эту сетку</button>
+    <button class="btn btn--ghost" id="sampleBracket">Вставить пример</button>
+  </div>
+  <p class="msg msg--error" id="bracketError" hidden></p>
+</section>
+
+<section class="card card--wide">
+  <h2>Проверка и сервис</h2>
+  <div class="row">
+    <a class="btn" href="/overlay.html" target="_blank">Открыть оверлей эфира</a>
+    <a class="btn btn--ghost" href="/api/health" target="_blank">Состояние сервера</a>
+    <a class="btn btn--ghost" href="/api/state?game=cs2" target="_blank">Сырые данные</a>
+    <button class="btn btn--ghost" id="resetStats">Обнулить статистику карты</button>
+    <button class="btn btn--danger" id="resetAll">Сбросить всё к заводским</button>
+  </div>
+  <p class="hint">Stream Deck, Touch Portal, Companion: любое действие пульта — это HTTP-запрос вида
+     <code>http://localhost:<span class="port"></span>/api/action/scene-starting</code>. Список действий:
+     <a href="/api/actions?game=cs2" target="_blank">api/actions</a>.</p>
+</section>
+
+</div>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/maps.js"></script>
+<script src="js/control.js"></script>
+</body>
+</html>

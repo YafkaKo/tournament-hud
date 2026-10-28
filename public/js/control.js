@@ -105,15 +105,8 @@ document.addEventListener('click', (e) => {
   }
 });
 
-$('swapTeams').onclick = () => patch({
-  radiant: { ...state.dire },
-  dire: { ...state.radiant },
-  series: {
-    ...state.series,
-    radiantWins: state.series.direWins,
-    direWins: state.series.radiantWins
-  }
-});
+// Названия и счёт остаются за командами — меняется только, кто за Radiant.
+$('swapTeams').onclick = () => fetch('/api/action/dota-swap-sides', { method: 'POST' });
 
 $('applyBracket').onclick = () => {
   const err = $('bracketError');
@@ -175,35 +168,10 @@ $('resetAll').onclick = async () => {
   fill();
 };
 
-/* ----------------------------------------------------------- хоткеи */
+/* ----------------------------------------------------------- хоткеи
 
-// Работают, пока эта вкладка в фокусе. Игнорируются, если оператор
-// печатает в поле — иначе Alt+1 сработает даже когда вводят "1" в счёт.
-const SCENE_KEYS = { Digit1: 'auto', Digit2: 'starting', Digit3: 'break', Digit4: 'bracket', Digit5: 'results', Digit6: 'scoreboard' };
-
-document.addEventListener('keydown', (e) => {
-  if (!e.altKey || !state) return;
-  const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
-  if (typing) return;
-
-  if (SCENE_KEYS[e.code]) {
-    e.preventDefault();
-    patch({ scene: SCENE_KEYS[e.code] });
-    return;
-  }
-  if (e.code === 'KeyT') {
-    e.preventDefault();
-    patch({ trivia: { ...state.trivia, show: !state.trivia.show } });
-  }
-  if (e.code === 'KeyP') {
-    e.preventDefault();
-    fetch('/api/toggle/probability', { method: 'POST' });
-  }
-  if (e.code === 'KeyR') {
-    e.preventDefault();
-    fetch('/api/toggle/mapResults', { method: 'POST' });
-  }
-});
+   Хоткеи обрабатывает общий пульт (control.html): он ловит нажатия и
+   внутри этой страницы, поэтому здесь своего обработчика нет. */
 
 function toLocalInput(iso) {
   const d = new Date(iso);

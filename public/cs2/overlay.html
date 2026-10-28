@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Arena CS2 Overlay</title>
+<link rel="icon" href="data:,">
+<script src="/js/game-scope.js" data-game="cs2"></script>
+<link rel="stylesheet" href="css/overlay.css">
+</head>
+<body class="is-loading">
+
+<!-- Значки. Нарисованы здесь же, чтобы эфир не зависел от интернета. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-hp" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" fill="currentColor"/></symbol>
+    <symbol id="i-armor" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z" fill="currentColor"/></symbol>
+    <symbol id="i-helmet" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z" fill="currentColor"/><path d="M7.5 10.5c0-2.6 2-4.5 4.5-4.5s4.5 1.9 4.5 4.5V12h-9z" fill="#0B0818" opacity=".55"/></symbol>
+    <symbol id="i-kit" viewBox="0 0 24 24"><path d="M5 9h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9zm4-5h6v3H9z" fill="currentColor"/><path d="M8 13h8v2H8z" fill="#0B0818" opacity=".6"/></symbol>
+    <symbol id="i-bomb" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="1.5" fill="currentColor"/><rect x="6" y="10" width="8" height="4" fill="#0B0818" opacity=".6"/><circle cx="17" cy="12" r="1.6" fill="#0B0818" opacity=".6"/><path d="M8 7V4h2v3z" fill="currentColor"/></symbol>
+    <symbol id="i-skull" viewBox="0 0 24 24"><path d="M12 2C7 2 4 5.6 4 10c0 2.6 1.2 4.4 3 5.5V19h2.5v-2h1.5v2h2v-2h1.5v2H17v-3.5c1.8-1.1 3-2.9 3-5.5 0-4.4-3-8-8-8zm-3.5 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm7 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="currentColor"/></symbol>
+    <symbol id="i-hs" viewBox="0 0 24 24"><circle cx="12" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="9" r="2" fill="currentColor"/><path d="M6 21c1-3.5 3.3-5 6-5s5 1.5 6 5" fill="none" stroke="currentColor" stroke-width="2.4"/></symbol>
+    <symbol id="i-smoke" viewBox="0 0 24 24"><rect x="7" y="6" width="10" height="15" rx="2" fill="currentColor"/><rect x="9" y="2.5" width="6" height="3" rx="1" fill="currentColor"/></symbol>
+    <symbol id="i-flash" viewBox="0 0 24 24"><path d="M9 3h6v3l2 3v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9l2-3z" fill="currentColor"/><path d="M10 11h4v6h-4z" fill="#0B0818" opacity=".45"/></symbol>
+    <symbol id="i-he" viewBox="0 0 24 24"><circle cx="12" cy="14" r="7" fill="currentColor"/><path d="M10 3h4v4h-4z" fill="currentColor"/><path d="M14 4h4v2h-4z" fill="currentColor"/></symbol>
+    <symbol id="i-fire" viewBox="0 0 24 24"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 1.5-4.5 3-6 0 2 1 3 2 3-1-3 0-6 1-9z" fill="currentColor"/></symbol>
+    <symbol id="i-decoy" viewBox="0 0 24 24"><rect x="8" y="5" width="8" height="15" rx="3" fill="currentColor" opacity=".7"/></symbol>
+    <symbol id="i-zeus" viewBox="0 0 24 24"><path d="M13 2 5 13h6l-1 9 8-11h-6z" fill="currentColor"/></symbol>
+    <symbol id="i-defuse" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4l-9.4 9.4-3.7.7.7-3.7z" fill="currentColor"/><path d="m15 4 5 5" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-time" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============================ ИГРОВОЙ СЛОЙ ============================ -->
+<div class="layer layer-game" id="layerGame">
+
+  <!-- Табло: команды, счёт, таймер раунда / таймер бомбы -->
+  <header class="board" id="board">
+    <div class="board__team board__team--a" id="boardA">
+      <div class="board__logo" id="logoA"></div>
+      <div class="board__name-wrap">
+        <div class="board__name" id="nameA">Команда A</div>
+        <div class="board__meta"><span class="side-pill" id="sideA">CT</span><span class="board__series" id="seriesA"></span></div>
+      </div>
+      <div class="board__score" id="scoreA">0</div>
+    </div>
+
+    <div class="board__center" id="boardCenter">
+      <div class="board__clock" id="clock">1:55</div>
+      <div class="board__bomb" id="bombClock" hidden>
+        <svg class="ico"><use href="#i-bomb"/></svg><span id="bombTime">40</span>
+      </div>
+      <div class="board__round" id="roundLabel">Раунд 1</div>
+      <div class="board__bar" id="bombBar"><i id="bombFill"></i></div>
+    </div>
+
+    <div class="board__team board__team--b" id="boardB">
+      <div class="board__score" id="scoreB">0</div>
+      <div class="board__name-wrap">
+        <div class="board__name" id="nameB">Команда B</div>
+        <div class="board__meta"><span class="board__series" id="seriesB"></span><span class="side-pill" id="sideB">T</span></div>
+      </div>
+      <div class="board__logo" id="logoB"></div>
+    </div>
+  </header>
+
+  <div class="subbar" id="subbar"></div>
+
+  <!-- Под табло: плашка события (итог раунда, разминирование, тайм-аут) -->
+  <div class="event" id="event" hidden>
+    <div class="event__title" id="eventTitle"></div>
+    <div class="event__sub" id="eventSub"></div>
+    <div class="event__bar" id="eventBar" hidden><i id="eventFill"></i></div>
+  </div>
+
+  <!-- История раундов (Alt+M) -->
+  <div class="history history--float" id="historyFloat" hidden></div>
+
+  <!-- Экономика: видна в закупку -->
+  <div class="econ econ--a" id="econA" hidden></div>
+  <div class="econ econ--b" id="econB" hidden></div>
+
+  <!-- Игроки -->
+  <section class="team-col team-col--a" id="colA"></section>
+  <section class="team-col team-col--b" id="colB"></section>
+
+  <!-- Игрок, за которым смотрит камера -->
+  <section class="focus" id="focus" hidden>
+    <div class="focus__top">
+      <span class="focus__slot" id="fSlot">1</span>
+      <span class="focus__name" id="fName">—</span>
+      <span class="focus__team" id="fTeam"></span>
+      <div class="focus__stats">
+        <div><b id="fK">0</b><span>K</span></div>
+        <div><b id="fA">0</b><span>A</span></div>
+        <div><b id="fD">0</b><span>D</span></div>
+        <div><b id="fAdr">0</b><span>ADR</span></div>
+        <div><b id="fHs">0%</b><span>HS</span></div>
+      </div>
+    </div>
+    <div class="focus__bottom">
+      <div class="focus__hp"><svg class="ico"><use href="#i-hp"/></svg><b id="fHp">100</b></div>
+      <div class="focus__armor" id="fArmorWrap"><svg class="ico"><use href="#i-helmet" id="fArmorIcon"/></svg><b id="fArmor">0</b></div>
+      <div class="focus__weapon"><span id="fWeapon">—</span><b id="fAmmo"></b></div>
+      <div class="focus__gear" id="fGear"></div>
+      <div class="focus__money" id="fMoney">$0</div>
+    </div>
+    <div class="focus__hpbar"><i id="fHpFill"></i></div>
+  </section>
+
+  <!-- Своя лента убийств (по умолчанию выключена — обычно оставляют игровую) -->
+  <div class="feed" id="feed" hidden></div>
+
+  <!-- Большая таблица игроков поверх игры (Alt+R) -->
+  <section class="stats-float" id="statsFloat" hidden></section>
+
+  <!-- Комментаторы -->
+  <div class="casters" id="casters" hidden>
+    <div class="casters__topic" id="castersTopic"></div>
+    <div class="casters__names">
+      <span id="casterLeft"></span><span class="casters__sep" id="castersSep"></span><span id="casterRight"></span>
+    </div>
+  </div>
+
+  <div class="ticker" id="ticker" hidden><span class="ticker__tag">Арена</span><span id="tickerText"></span></div>
+</div>
+
+<!-- ============================ ЗАСТАВКИ ============================ -->
+<section class="layer layer-full pane" id="sceneStarting" hidden>
+  <div class="pane__eyebrow" id="startEyebrow">Кубок арены</div>
+  <h1 class="pane__title" id="startTitle">Трансляция скоро начнётся</h1>
+  <p class="pane__sub" id="startSub"></p>
+  <div class="pane__countdown" id="startCountdown" hidden></div>
+  <div class="versus">
+    <div class="versus__team"><div class="versus__logo" id="vsLogoA"></div><span id="vsA">Команда A</span></div>
+    <div class="versus__mark">VS</div>
+    <div class="versus__team versus__team--b"><span id="vsB">Команда B</span><div class="versus__logo" id="vsLogoB"></div></div>
+  </div>
+  <div class="pane__format" id="startFormat"></div>
+</section>
+
+<section class="layer layer-full pane" id="sceneBreak" hidden>
+  <div class="pane__eyebrow" id="breakEyebrow"></div>
+  <h1 class="pane__title" id="breakTitle">Технический перерыв</h1>
+  <p class="pane__sub">Скоро вернёмся</p>
+  <div class="break__series" id="breakSeries"></div>
+</section>
+
+<section class="layer layer-full pane pane--bracket" id="sceneBracket" hidden>
+  <h1 class="pane__title pane__title--sm" id="bracketTitle">Турнирная сетка</h1>
+  <div class="bracket" id="bracket"></div>
+</section>
+
+<section class="layer layer-full pane pane--veto" id="sceneVeto" hidden>
+  <div class="pane__eyebrow" id="vetoEyebrow">Пики карт</div>
+  <h1 class="pane__title pane__title--sm" id="vetoTitle">Команда A vs Команда B</h1>
+  <div class="veto" id="veto"></div>
+</section>
+
+<section class="layer layer-full pane" id="sceneResults" hidden>
+  <div class="pane__eyebrow" id="resultEyebrow">Победа на карте</div>
+  <div class="result__logo" id="resultLogo"></div>
+  <h1 class="pane__title" id="resultWinner">—</h1>
+  <div class="result__map" id="resultMap"></div>
+  <div class="result__series" id="resultSeries"></div>
+  <p class="pane__sub" id="resultNote"></p>
+</section>
+
+<section class="layer layer-full pane pane--scoreboard" id="sceneScoreboard" hidden>
+  <header class="sb-head">
+    <div class="sb-head__team sb-head__team--a"><span id="sbNameA">Команда A</span><b id="sbScoreA">0</b></div>
+    <div class="sb-head__mid">
+      <div class="sb-head__map" id="sbMap">—</div>
+      <div class="sb-head__round" id="sbRound"></div>
+    </div>
+    <div class="sb-head__team sb-head__team--b"><b id="sbScoreB">0</b><span id="sbNameB">Команда B</span></div>
+  </header>
+  <div class="history history--wide" id="historyWide"></div>
+  <div class="sb-body" id="sbBody"></div>
+</section>
+
+<!-- Trivia: поверх любой сцены, Alt+T -->
+<div class="trivia" id="trivia" hidden>
+  <div class="trivia__tag">Знаете ли вы</div>
+  <div class="trivia__title" id="triviaTitle"></div>
+  <div class="trivia__text" id="triviaText"></div>
+</div>
+
+<!-- Таймер «Матч скоро начнётся»: поверх любой сцены, Alt+C -->
+<div class="cd" id="countdown" hidden>
+  <div class="cd__label" id="countdownLabel">Матч скоро начнётся</div>
+  <div class="cd__time" id="countdownTime">00:00</div>
+</div>
+
+<!-- Индикатор связи: виден только в обычном браузере, в OBS (?obs=1) скрыт -->
+<div class="conn" id="conn">нет связи с сервером</div>
+<div class="nodata" id="nodata" hidden>ждём данные из CS2 — запустите игру как наблюдатель или имитатор</div>
+
+<script src="js/maps.js"></script>
+<script src="js/overlay.js"></script>
+</body>
+</html>

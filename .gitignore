@@ -4,3 +4,8 @@ data/*.json
 data/gsi-log/
 public/assets/backgrounds/
 *.log
+data/backup/
+public/assets/ads/
+public/assets/logos/
+public/assets/heroes/voice/*
+!public/assets/heroes/voice/README.txt

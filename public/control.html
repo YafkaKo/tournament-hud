@@ -4,177 +4,181 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Пульт трансляции</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/control.css">
-<link rel="stylesheet" href="css/backgrounds.css">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/shell-control.css">
 </head>
 <body>
 
-<header class="top">
-  <div>
-    <h1>Пульт трансляции</h1>
-    <p class="hint">Всё, что вы меняете здесь, появляется в эфире сразу. Ctrl+S не нужен.</p>
+<header class="bar">
+  <div class="bar__brand">
+    <span class="bar__logo" aria-hidden="true"></span>
+    <div>
+      <h1>Пульт трансляции</h1>
+      <p class="bar__match" id="matchLine">—</p>
+    </div>
   </div>
-  <div class="status">
-    <span class="dot" id="dotWs"></span> сервер
-    <span class="dot" id="dotGsi"></span> данные из игры
+
+  <div class="gameswitch" role="radiogroup" aria-label="Игра в эфире">
+    <button type="button" role="radio" data-game="dota"><b>Dota 2</b><i id="gsiDota"></i></button>
+    <button type="button" role="radio" data-game="cs2"><b>CS2</b><i id="gsiCs2"></i></button>
+  </div>
+
+  <div class="bar__status">
+    <span class="pill" id="pillWs"><i></i>сервер</span>
+    <span class="pill" id="pillObs" title="Основной оверлей (overlay.html?obs=1) открыт в OBS"><i></i>OBS-оверлей</span>
   </div>
 </header>
 
-<p class="warning" id="sourceWarning" hidden></p>
+<!-- Полоса состояния: пауза в игре, идёт реклама, предупреждения -->
+<div class="notice notice--pause" id="noticePause" hidden>
+  <span><b>Пауза в игре.</b> Можно запустить рекламу.</span>
+  <button type="button" class="btn btn--accent" data-act="ads-play">Запустить рекламу <kbd>Alt+A</kbd></button>
+</div>
+<div class="notice notice--ads" id="noticeAds" hidden>
+  <span class="notice__live">в эфире</span>
+  <span id="adsNowText">Реклама</span>
+  <span class="notice__bar"><span id="adsNowBar"></span></span>
+  <button type="button" class="btn" data-act="ads-skip">Следующий ролик</button>
+  <button type="button" class="btn btn--danger" data-act="ads-stop">Остановить <kbd>Alt+S</kbd></button>
+</div>
+<div class="notice notice--warn" id="noticeWarn" hidden></div>
+
+<nav class="tabs" aria-label="Разделы пульта">
+  <button type="button" data-tab="game" class="is-active">Пульт игры</button>
+  <button type="button" data-tab="ads">Реклама</button>
+  <button type="button" data-tab="pick" data-only="dota">Пик героя</button>
+  <button type="button" data-tab="keys">Хоткеи</button>
+</nav>
 
 <main>
 
-<section class="card card--wide">
-  <h2>Что в эфире</h2>
-  <div class="scenes" id="scenes">
-    <button data-scene="auto">Игра</button>
-    <button data-scene="starting">Скоро начнём</button>
-    <button data-scene="break">Перерыв</button>
-    <button data-scene="bracket">Сетка</button>
-    <button data-scene="results">Итог карты (заставка)</button>
-    <button data-scene="scoreboard">Таблица счёта (живая)</button>
-    <button data-scene="blank">Чистый экран</button>
-  </div>
-  <p class="hint">Хоткеи работают, пока открыта эта вкладка: <kbd>Alt+1</kbd> игра ·
-     <kbd>Alt+2</kbd> скоро начнём · <kbd>Alt+3</kbd> перерыв · <kbd>Alt+4</kbd> сетка ·
-     <kbd>Alt+5</kbd> итог (заставка) · <kbd>Alt+6</kbd> таблица счёта · <kbd>Alt+T</kbd> Trivia ·
-     <kbd>Alt+P</kbd> вероятность победы · <kbd>Alt+R</kbd> итоги карты.</p>
-  <div class="toggles">
-    <label><input type="checkbox" data-path="showHud"> Показывать графику поверх игры</label>
-    <label><input type="checkbox" data-path="panels.networth"> Полоса золота</label>
-    <label><input type="checkbox" data-path="panels.objectives"> Рошан</label>
-    <label><input type="checkbox" data-path="panels.rosters"> Составы команд</label>
-  </div>
-</section>
+  <!-- ============================ ПУЛЬТ ИГРЫ ============================ -->
+  <section class="panel is-active" data-panel="game">
+    <iframe class="gameframe" id="pultDota" data-game="dota" title="Пульт Dota 2"></iframe>
+    <iframe class="gameframe" id="pultCs2" data-game="cs2" title="Пульт CS2"></iframe>
+  </section>
 
-<section class="card">
-  <h2>Матч</h2>
-  <label class="field"><span>Турнир</span><input data-path="tournament"></label>
-  <label class="field"><span>Стадия</span><input data-path="stage"></label>
+  <!-- ============================ РЕКЛАМА ============================ -->
+  <section class="panel" data-panel="ads">
+    <div class="ads-grid">
+      <div class="col">
+        <section class="card">
+          <h2>Очередь <span class="h-hint">играет по порядку, по кнопке или <kbd>Alt+A</kbd></span></h2>
+          <ol class="queue" id="queue"></ol>
+          <p class="empty" id="queueEmpty">Очередь пуста. Отметьте ролики ниже.</p>
+          <div class="row">
+            <label class="field field--inline">
+              <span>Между роликами</span>
+              <select id="between">
+                <option value="transition">переход</option>
+                <option value="cut">прямая склейка</option>
+              </select>
+            </label>
+          </div>
+          <div class="row row--big">
+            <button type="button" class="btn btn--accent btn--big" data-act="ads-play">Запустить рекламу</button>
+            <button type="button" class="btn btn--big" data-act="ads-skip">Следующий</button>
+            <button type="button" class="btn btn--danger btn--big" data-act="ads-stop">Остановить</button>
+          </div>
+          <p class="msg" id="adsMsg" hidden></p>
+        </section>
 
-  <div class="row">
-    <label class="field"><span>Radiant</span><input data-path="radiant.name"></label>
-    <label class="field"><span>Dire</span><input data-path="dire.name"></label>
-  </div>
-  <div class="row">
-    <label class="field"><span>Логотип Radiant (URL)</span><input data-path="radiant.logo" placeholder="http://localhost:3000/assets/team-a.png"></label>
-    <label class="field"><span>Логотип Dire (URL)</span><input data-path="dire.logo"></label>
-  </div>
+        <section class="card">
+          <h2>Ролики</h2>
+          <label class="drop" data-upload="clip">
+            <input type="file" accept="video/mp4,video/webm" multiple hidden>
+            <b>Перетащите сюда ролики</b> или нажмите, чтобы выбрать. MP4 (H.264 + AAC) или WebM.
+          </label>
+          <div class="uploads" id="uploadsClip"></div>
+          <ul class="files" id="clips"></ul>
+        </section>
+      </div>
 
-  <div class="row">
-    <label class="field">
-      <span>Формат</span>
-      <select data-path="series.format">
-        <option value="bo1">Bo1</option>
-        <option value="bo2">Bo2</option>
-        <option value="bo3">Bo3</option>
-        <option value="bo5">Bo5</option>
-      </select>
-    </label>
-    <div class="field">
-      <span>Счёт серии</span>
-      <div class="counter">
-        <button data-inc="series.radiantWins" data-by="-1">−</button>
-        <b id="radWins">0</b>
-        <button data-inc="series.radiantWins" data-by="1">+</button>
-        <em>:</em>
-        <button data-inc="series.direWins" data-by="-1">−</button>
-        <b id="direWins">0</b>
-        <button data-inc="series.direWins" data-by="1">+</button>
+      <div class="col">
+        <section class="card">
+          <h2>Превью эфира <span class="h-hint">без звука</span></h2>
+          <div class="preview" id="preview">
+            <iframe src="about:blank" data-src="/overlay.html?obs=1&main=0" title="Превью эфира" tabindex="-1"></iframe>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Переходы <span class="h-hint">видео поверх эфира в начале и в конце</span></h2>
+          <label class="drop" data-upload="transition">
+            <input type="file" accept="video/webm,video/mp4" multiple hidden>
+            <b>Перетащите сюда переход</b> — лучше WebM с прозрачностью (VP9 + альфа).
+          </label>
+          <div class="uploads" id="uploadsTransition"></div>
+          <ul class="files" id="transitions"></ul>
+          <p class="hint"><b>Точка перекрытия</b> — момент, когда переход полностью закрывает экран.
+            В этот момент под ним включается ролик (на входе) или возвращается эфир (на выходе).
+            Подберите её кнопкой «Проверить»: в превью кадр в точке перекрытия должен быть закрыт полностью.</p>
+          <div class="tpreview" id="tpreview" hidden>
+            <video id="tpVideo" playsinline controls></video>
+            <div class="tpreview__flag" id="tpFlag">точка перекрытия</div>
+          </div>
+        </section>
       </div>
     </div>
-  </div>
-  <button class="ghost" id="swapTeams">Поменять команды местами</button>
-</section>
+  </section>
 
-<section class="card">
-  <h2>Заставки</h2>
-  <label class="field"><span>Заголовок «скоро начнём»</span><input data-path="starting.title"></label>
-  <label class="field"><span>Подпись</span><input data-path="starting.subtitle"></label>
-  <label class="field"><span>Обратный отсчёт до</span><input type="datetime-local" data-path="starting.countdownTo" data-type="datetime"></label>
-  <label class="field"><span>Текст перерыва</span><input data-path="breakText"></label>
-  <label class="check"><input type="checkbox" data-path="bgOnly.starting"> «Скоро начнём»: только фон, без текста</label>
-  <label class="check"><input type="checkbox" data-path="bgOnly.break"> «Перерыв»: только фон, без текста</label>
-  <label class="field"><span>Бегущая строка внизу</span><input data-path="ticker" placeholder="пусто = выключена"></label>
-</section>
+  <!-- ============================ ПИК ГЕРОЯ ============================ -->
+  <section class="panel" data-panel="pick">
+    <div class="ads-grid">
+      <div class="col">
+        <section class="card">
+          <h2>Анимация пика героя</h2>
+          <p class="hint">Во время драфта при каждом новом пике на оверлее выезжает карточка героя со стороны команды,
+            которая его выбрала, и звучит его фраза (если файл есть). Уже готовый драфт при запуске не проигрывается,
+            повторные пакеты из игры — тоже. Карточка не закрывает таймер хода и резерв.</p>
+          <label class="switch"><input type="checkbox" id="pfEnabled"><span>Показывать анимацию пика</span></label>
+          <label class="switch"><input type="checkbox" id="pfVoice"><span>Фраза героя</span></label>
+          <label class="field"><span>Громкость фразы: <b id="pfVolLabel">80</b>%</span>
+            <input type="range" min="0" max="100" step="5" id="pfVolume"></label>
+          <div class="row">
+            <button type="button" class="btn btn--accent" id="pfTest">Проверить на случайном герое</button>
+            <button type="button" class="btn" data-act="pick-replay">Повторить последний пик <kbd>Alt+J</kbd></button>
+          </div>
+          <p class="hint" id="pfVoices">—</p>
+        </section>
+      </div>
+      <div class="col">
+        <section class="card">
+          <h2>Превью эфира</h2>
+          <div class="preview" id="preview2">
+            <iframe src="about:blank" data-src="/overlay.html?obs=1&main=0" title="Превью эфира" tabindex="-1"></iframe>
+          </div>
+          <p class="hint">Фразы героев положите в <code>public/assets/heroes/voice/</code> с внутренним именем героя (как в <code>npc_dota_hero_…</code>):
+            <code>juggernaut.mp3</code>, <code>nevermore.ogg</code> (Shadow Fiend), <code>antimage.wav</code>. Как достать их из файлов игры — в README.</p>
+        </section>
+      </div>
+    </div>
+  </section>
 
-<section class="card">
-  <h2>Комментаторы</h2>
-  <label class="check"><input type="checkbox" data-path="casters.show"> Показывать плашку</label>
-  <div class="row">
-    <label class="field"><span>Слева</span><input data-path="casters.left"></label>
-    <label class="field"><span>Справа</span><input data-path="casters.right"></label>
-  </div>
-  <label class="field"><span>Подпись над именами</span><input data-path="casters.topic" placeholder="Комментируют"></label>
-</section>
-
-<section class="card">
-  <h2>Вероятность и итоги карты</h2>
-  <p class="hint">Это же и всё остальное — на пульте для телефона (<a href="/control" target="_blank">/control</a>).
-     Итоги карты включаются сами, когда игра закончилась, и держатся до новой карты.</p>
-  <label class="check"><input type="checkbox" data-path="probability.show"> Плашка вероятности победы</label>
-  <label class="check"><input type="checkbox" data-path="mapResults.show"> Плашка итогов карты</label>
-  <p class="hint" id="matchInfo">Данных из игры пока нет.</p>
-  <div class="row">
-    <button class="ghost" id="resetMatch">Сбросить матч</button>
-  </div>
-</section>
-
-<section class="card">
-  <h2>Итог карты — заставка</h2>
-  <p class="hint">Для сцены «Итог карты (заставка)» — крупная надпись с победителем.
-     Для живой таблицы всех игроков используйте сцену «Таблица счёта».</p>
-  <div class="row">
-    <label class="field">
-      <span>Победитель</span>
-      <select data-path="results.winner">
-        <option value="radiant">Radiant</option>
-        <option value="dire">Dire</option>
-      </select>
-    </label>
-    <label class="field"><span>Примечание</span><input data-path="results.note"></label>
-  </div>
-</section>
-
-<section class="card">
-  <h2>Trivia</h2>
-  <p class="hint">Плашка «а знаете ли вы» — накладывается поверх текущей сцены. Хоткей <kbd>Alt+T</kbd>.</p>
-  <label class="check"><input type="checkbox" data-path="trivia.show"> Показывать плашку</label>
-  <label class="field"><span>Заголовок</span><input data-path="trivia.title"></label>
-  <label class="field"><span>Текст</span><input data-path="trivia.text"></label>
-</section>
-
-<section class="card">
-  <h2>Фон заставок</h2>
-  <p class="hint">Картинка или видео за полноэкранными сценами. Можно задать общий фон и отдельный для любой сцены.</p>
-  <div id="bgPanel"></div>
-</section>
-
-<section class="card card--wide">
-  <h2>Турнирная сетка</h2>
-  <p class="hint">Вставьте JSON. Формат: массив раундов, в каждом — матчи с двумя сторонами.
-     Экспорт из TournamentGenerator подойдёт после приведения к этой форме.</p>
-  <textarea id="bracketJson" spellcheck="false"></textarea>
-  <div class="row">
-    <button id="applyBracket">Показать эту сетку</button>
-    <button class="ghost" id="sampleBracket">Вставить пример</button>
-  </div>
-  <p class="error" id="bracketError" hidden></p>
-</section>
-
-<section class="card card--wide">
-  <h2>Проверка</h2>
-  <p class="hint">Открыть оверлей в отдельной вкладке, чтобы посмотреть его глазами зрителя.</p>
-  <div class="row">
-    <a class="btnlink" href="overlay.html" target="_blank">Открыть оверлей</a>
-    <button class="ghost" id="resetAll">Сбросить всё к заводским</button>
-  </div>
-</section>
+  <!-- ============================ ХОТКЕИ ============================ -->
+  <section class="panel" data-panel="keys">
+    <div class="ads-grid">
+      <section class="card">
+        <h2>Хоткеи пульта <span class="h-hint" id="keysGame"></span></h2>
+        <p class="hint">Работают, пока пульт в фокусе (в том числе внутри «Пульта игры») и курсор не стоит в поле ввода.</p>
+        <dl class="keys" id="keysList"></dl>
+      </section>
+      <section class="card">
+        <h2>Глобальные хоткеи и Stream Deck</h2>
+        <p class="hint">Когда в фокусе игра или OBS, хоткеи пульта не слышат нажатий. Для этого есть агент хоткеев
+          (<code>agent/start-agent.bat</code>, сочетания — в <code>agent/config.json</code>). Любое действие — это и HTTP-запрос
+          для Stream Deck / Touch Portal / Companion:</p>
+        <p><code>http://localhost:<span class="port"></span>/api/action/scene-starting</code></p>
+        <ul class="actions" id="actionsList"></ul>
+      </section>
+    </div>
+  </section>
 
 </main>
 
-<script src="js/backgrounds.js"></script>
-<script src="js/control.js"></script>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/hotkeys.js"></script>
+<script src="js/shell-control.js"></script>
 </body>
 </html>

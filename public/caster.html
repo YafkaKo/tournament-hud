@@ -10,6 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <title>Пульт трансляции</title>
+<script src="/js/game-scope.js" data-game="dota"></script>
 <link rel="stylesheet" href="/css/caster.css">
 <link rel="stylesheet" href="/css/backgrounds.css">
 </head>
@@ -19,6 +20,7 @@
 <header class="top">
   <div class="top__main">
     <div class="onair">
+      <span class="gamebadge" id="gameBadge">Dota 2</span>
       <span class="onair__label">В эфире</span>
       <span class="onair__scene" id="onairScene">—</span>
     </div>
@@ -32,6 +34,14 @@
 
 <div class="offline" id="offline" hidden>Нет связи с сервером. Переподключаюсь…</div>
 <div class="offline offline--warn" id="sourceWarning" hidden></div>
+<div class="offline offline--pause" id="pauseHint" hidden>
+  <span><b>Пауза в игре</b> — можно запустить рекламу</span>
+  <button type="button" data-act="ads-play">Запустить</button>
+</div>
+<div class="offline offline--ads" id="adsLive" hidden>
+  <span id="adsLiveText">Идёт реклама</span>
+  <button type="button" data-act="ads-stop">Стоп</button>
+</div>
 
 <main>
 
@@ -39,17 +49,34 @@
   <section class="panel" id="tab-air" data-tab="air">
     <h2>Сцена</h2>
     <div class="scenes">
-      <button type="button" class="scene" data-scene="auto"><b>Игра</b><span>драфт включится сам</span></button>
+      <button type="button" class="scene" data-scene="auto"><b>Игра</b><span>HUD поверх игры, в Доте — драфт сам</span></button>
       <button type="button" class="scene" data-scene="starting"><b>Скоро начнём</b><span>заставка с отсчётом</span></button>
       <button type="button" class="scene" data-scene="break"><b>Перерыв</b><span>технический перерыв</span></button>
       <button type="button" class="scene" data-scene="bracket"><b>Сетка</b><span>турнирная сетка</span></button>
       <button type="button" class="scene" data-scene="results"><b>Итог-заставка</b><span>крупно победитель</span></button>
       <button type="button" class="scene" data-scene="scoreboard"><b>Таблица счёта</b><span>все игроки, живая</span></button>
+      <button type="button" class="scene" data-scene="veto" data-only="cs2"><b>Пики карт</b><span>карты серии</span></button>
       <button type="button" class="scene scene--wide" data-scene="blank"><b>Чистый экран</b><span>только игра, без графики</span></button>
     </div>
 
     <h2>Главное</h2>
-    <label class="tile">
+    <label class="tile" data-only="cs2">
+      <input type="checkbox" data-hud="cs2.panels.stats" data-toggle="toggle-stats">
+      <span class="tile__switch" aria-hidden="true"></span>
+      <span class="tile__body">
+        <span class="tile__title">Таблица игроков</span>
+        <span class="tile__desc">большая таблица поверх игры: K/A/D, ADR, HS%</span>
+      </span>
+    </label>
+    <label class="tile" data-only="cs2">
+      <input type="checkbox" data-hud="cs2.panels.rounds" data-toggle="toggle-rounds">
+      <span class="tile__switch" aria-hidden="true"></span>
+      <span class="tile__body">
+        <span class="tile__title">История раундов</span>
+        <span class="tile__desc">полоса раундов под табло</span>
+      </span>
+    </label>
+    <label class="tile" data-only="dota">
       <input type="checkbox" data-path="probability.show">
       <span class="tile__switch" aria-hidden="true"></span>
       <span class="tile__body">
@@ -59,7 +86,7 @@
       </span>
     </label>
 
-    <label class="tile">
+    <label class="tile" data-only="dota">
       <input type="checkbox" data-path="mapResults.show">
       <span class="tile__switch" aria-hidden="true"></span>
       <span class="tile__body">
@@ -75,9 +102,14 @@
     <h2>Поверх игры</h2>
     <div class="switches">
       <label class="sw"><span><b>Вся графика</b><i>верхняя лента и всё остальное</i></span><input type="checkbox" data-path="showHud"><em aria-hidden="true"></em></label>
-      <label class="sw"><span><b>Полоса золота</b><i>разница нетворса</i></span><input type="checkbox" data-path="panels.networth"><em aria-hidden="true"></em></label>
-      <label class="sw"><span><b>Рошан</b><i>жив или таймер</i></span><input type="checkbox" data-path="panels.objectives"><em aria-hidden="true"></em></label>
-      <label class="sw"><span><b>Составы команд</b><i>Большая панель</i></span><input type="checkbox" data-path="panels.rosters"><em aria-hidden="true"></em></label>
+      <label class="sw" data-only="dota"><span><b>Полоса золота</b><i>разница нетворса</i></span><input type="checkbox" data-path="panels.networth"><em aria-hidden="true"></em></label>
+      <label class="sw" data-only="dota"><span><b>Рошан</b><i>жив или таймер</i></span><input type="checkbox" data-path="panels.objectives"><em aria-hidden="true"></em></label>
+      <label class="sw" data-only="dota"><span><b>Составы команд</b><i>Большая панель</i></span><input type="checkbox" data-path="panels.rosters"><em aria-hidden="true"></em></label>
+      <label class="sw" data-only="cs2"><span><b>Экономика</b><i>в закупку</i></span><input type="checkbox" data-hud="cs2.panels.economy" data-toggle="toggle-economy"><em aria-hidden="true"></em></label>
+      <label class="sw" data-only="cs2"><span><b>Карточки игроков</b><i>слева и справа</i></span><input type="checkbox" data-hud="cs2.panels.players" data-toggle="toggle-players"><em aria-hidden="true"></em></label>
+      <label class="sw" data-only="cs2"><span><b>Игрок в камере</b><i>панель снизу</i></span><input type="checkbox" data-hud="cs2.panels.observed" data-toggle="toggle-observed"><em aria-hidden="true"></em></label>
+      <label class="sw" data-only="cs2"><span><b>Своя лента убийств</b><i>вместо игровой</i></span><input type="checkbox" data-hud="cs2.panels.killfeed" data-toggle="toggle-killfeed"><em aria-hidden="true"></em></label>
+      <label class="sw"><span><b>Таймер</b><i>«матч скоро начнётся»</i></span><input type="checkbox" data-hud="countdown.show" data-toggle="toggle-countdown"><em aria-hidden="true"></em></label>
       <label class="sw"><span><b>Комментаторы</b><i>плашка с именами</i></span><input type="checkbox" data-path="casters.show"><em aria-hidden="true"></em></label>
       <label class="sw"><span><b>Trivia</b><i id="triviaHint">текст — во вкладке «Тексты»</i></span><input type="checkbox" data-path="trivia.show"><em aria-hidden="true"></em></label>
     </div>
@@ -124,13 +156,14 @@
         </select>
       </label>
     </div>
-    <button type="button" class="ghost" id="swapTeams">Команды поменялись сторонами</button>
+    <button type="button" class="ghost" id="swapTeams" data-only="dota">Команды поменялись сторонами</button>
+    <button type="button" class="ghost" data-act="sides-swap" data-only="cs2">Поменять стороны CT / T</button>
 
     <h2>Турнир</h2>
     <label class="field"><span>Стадия</span><input data-path="stage" autocomplete="off"></label>
 
-    <h2>Карта</h2>
-    <div class="danger">
+    <h2 data-only="dota">Карта</h2>
+    <div class="danger" data-only="dota">
       <button type="button" id="resetMatch">Сбросить матч</button>
       <p>Снимает итоги и удаляет снимки вероятности. Команды и счёт серии остаются.
          Новая карта сбрасывается сама, когда в игре меняется номер матча.</p>
@@ -188,6 +221,20 @@
     <label class="field"><span>Бегущая строка</span><input data-path="ticker" placeholder="пусто — выключена" autocomplete="off"></label>
   </section>
 
+  <!-- ============================ РЕКЛАМА ============================ -->
+  <section class="panel" id="tab-ads" data-tab="ads">
+    <h2>Реклама</h2>
+    <p class="hint" id="adsStatus">—</p>
+    <div class="row">
+      <button type="button" data-act="ads-play">Запустить очередь</button>
+      <button type="button" class="ghost" data-act="ads-skip">Следующий</button>
+      <button type="button" class="ghost" data-act="ads-stop">Стоп</button>
+    </div>
+    <h2>Очередь</h2>
+    <ul class="library" id="adsQueue"></ul>
+    <p class="hint">Ролики и переходы загружаются на пульте оператора (вкладка «Реклама»).</p>
+  </section>
+
   <!-- ============================ ФОН ============================ -->
   <section class="panel" id="tab-bg" data-tab="bg">
     <h2>Фон заставок</h2>
@@ -202,12 +249,14 @@
   <button type="button" data-goto="overlays">Плашки</button>
   <button type="button" data-goto="match">Матч</button>
   <button type="button" data-goto="texts">Тексты</button>
+  <button type="button" data-goto="ads">Реклама</button>
   <button type="button" data-goto="bg">Фон</button>
 </nav>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="/js/dota.js"></script>
+<script src="/js/hotkeys.js"></script>
 <script src="/js/backgrounds.js"></script>
 <script src="/js/caster.js"></script>
 </body>

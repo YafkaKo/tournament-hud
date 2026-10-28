@@ -6,11 +6,14 @@ const $ = (id) => document.getElementById(id);
 
 let control = null;
 let match = null;
+let hud = null;       // общее: какая игра в эфире, плашки CS2, реклама, пауза
+let ads = null;       // список роликов (для вкладки «Реклама»)
 
 const SCENE_NAMES = {
   auto: 'Игра', starting: 'Скоро начнём', break: 'Перерыв', bracket: 'Сетка',
-  results: 'Итог-заставка', scoreboard: 'Таблица счёта', blank: 'Чистый экран'
+  results: 'Итог-заставка', scoreboard: 'Таблица счёта', veto: 'Пики карт', blank: 'Чистый экран'
 };
+const GAME_NAMES = { dota: 'Dota 2', cs2: 'CS2' };
 
 const STATE_LABEL = {
   DOTA_GAMERULES_STATE_HERO_SELECTION: 'драфт',
@@ -32,6 +35,13 @@ function connect() {
     const msg = JSON.parse(e.data);
     if (msg.type === 'control') control = msg.data;
     if (msg.type === 'match') match = msg.data;
+    if (msg.type === 'hud') {
+      const prevSig = hud && hud.adsSig;
+      hud = msg.data;
+      if (prevSig !== hud.adsSig) loadAds();
+      renderHud();
+      return;
+    }
     if (msg.type === 'status') {
       $('dotGsi').classList.toggle('on', msg.data.gsiConnected);
       $('sourceWarning').hidden = !msg.data.warning;
@@ -93,6 +103,13 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('change', (e) => {
+  // Переключатели CS2 и общие: через быстрые действия сервера
+  const tg = e.target.closest('[data-toggle]');
+  if (tg) {
+    buzz();
+    fetch(`/api/action/${tg.dataset.toggle}`, { method: 'POST' }).catch(() => toast('Не отправилось — нет связи с сервером'));
+    return;
+  }
   const el = e.target.closest('[data-path]');
   if (!el) return;
   if (el.type === 'checkbox') { buzz(); patch(nest(el.dataset.path, el.checked)); }
@@ -152,6 +169,7 @@ function render() {
   renderTrivia();
   renderCountdown();
   updateBackgrounds(control);
+  renderHud();   // общее состояние (и картина CS2, если в эфире она)
 }
 
 function renderProbability(rad, dire) {
@@ -231,6 +249,17 @@ setInterval(() => control && renderCountdown(), 1000);
 /* ----------------------------------------------------------- действия */
 
 document.addEventListener('click', async (e) => {
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    buzz();
+    try {
+      const res = await fetch(`/api/action/${act.dataset.act}`, { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      toast(res.ok ? (ACT_DONE[act.dataset.act] || 'Готово') : (body.error || 'Не получилось'));
+    } catch { toast('Не отправилось — нет связи с сервером'); }
+    return;
+  }
+
   const scene = e.target.closest('[data-scene]');
   if (scene) {
     buzz();
@@ -348,10 +377,56 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
-// С клавиатурой ноутбука: Alt+P — вероятность, Alt+R — итоги.
-document.addEventListener('keydown', (e) => {
-  if (!e.altKey || e.ctrlKey || e.metaKey || !control) return;
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
-  if (e.code === 'KeyP') { e.preventDefault(); patch({ probability: { show: !control.probability.show } }); }
-  if (e.code === 'KeyR') { e.preventDefault(); patch({ mapResults: { show: !control.mapResults.show } }); }
+// С клавиатуры ноутбука — те же хоткеи, что на пульте оператора.
+bindHotkeys(window, {
+  getGame: () => (hud && hud.game) || 'dota',
+  onAction: (hk, res) => toast(res && res.error ? `${hk.title}: ${res.error}` : hk.title)
 });
+
+/* ----------------------------------------------------------- две игры и реклама */
+
+const ACT_DONE = { 'ads-play': 'Реклама запускается', 'ads-stop': 'Реклама останавливается', 'ads-skip': 'Следующий ролик', 'sides-swap': 'Стороны поменялись' };
+
+function renderHud() {
+  if (!hud) return;
+  const game = hud.game;
+  $('gameBadge').textContent = GAME_NAMES[game] || game;
+  document.querySelectorAll('[data-only]').forEach((el) => { el.hidden = el.dataset.only !== game; });
+  document.querySelectorAll('[data-hud]').forEach((el) => {
+    const v = el.dataset.hud.split('.').reduce((o, k) => (o ?? {})[k], hud);
+    el.checked = !!v;
+  });
+  // В CS2 строка матча — из сводки CS2
+  if (game === 'cs2') {
+    const s = hud.games.cs2.summary;
+    $('matchLine').innerHTML = s
+      ? `<b>${esc(hud.teams.A.name)} — ${esc(hud.teams.B.name)}</b> · ${esc(s.map)} · раунд ${s.round} · ${s.score}${s.paused ? ' · пауза' : ''}`
+      : 'Ждём данные из CS2';
+    $('onairScene').textContent = SCENE_NAMES[hud.scene] || hud.scene;
+    document.querySelectorAll('[data-scene]').forEach((b) => b.classList.toggle('is-active', b.dataset.scene === hud.scene));
+  }
+  const a = hud.ads;
+  const playing = a.status === 'playing';
+  $('pauseHint').hidden = !hud.paused || playing;
+  $('adsLive').hidden = !playing;
+  if (playing) $('adsLiveText').textContent = `Реклама: ${a.current} (${a.index + 1}/${a.total})`;
+  $('adsStatus').textContent = playing
+    ? `Идёт: ${a.current} · ${a.index + 1} из ${a.total}`
+    : !a.mainConnected ? 'OBS-оверлей не подключён — реклама не запустится'
+    : a.error || 'Реклама не идёт';
+  renderAdsQueue();
+}
+
+async function loadAds() {
+  try { ads = await fetch('/api/ads').then((r) => r.json()); } catch { return; }
+  renderAdsQueue();
+}
+
+function renderAdsQueue() {
+  if (!ads) return;
+  const byId = Object.fromEntries(ads.clips.map((c) => [c.id, c]));
+  const live = hud && hud.ads.status === 'playing' ? hud.ads.current : null;
+  $('adsQueue').innerHTML = ads.queue.map((id) => byId[id]).filter(Boolean).map((c, i) =>
+    `<li class="fact ${live === c.name ? 'is-live' : ''}"><div class="fact__text"><div class="fact__title">${i + 1}. ${esc(c.name)}</div>` +
+    `<div class="fact__body">${c.duration ? clock(c.duration) : ''}</div></div></li>`).join('');
+}

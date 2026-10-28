@@ -8,10 +8,21 @@ function heroKey(name) {
   return String(name).replace(/^npc_dota_hero_/, '');
 }
 
-/** shadow_fiend -> Shadow Fiend */
+// У части героев внутреннее имя в игре не совпадает с привычным.
+const HERO_NAMES = {
+  nevermore: 'Shadow Fiend', antimage: 'Anti-Mage', obsidian_destroyer: 'Outworld Destroyer', wisp: 'Io',
+  zuus: 'Zeus', furion: "Nature's Prophet", magnataur: 'Magnus', skeleton_king: 'Wraith King',
+  shredder: 'Timbersaw', rattletrap: 'Clockwerk', windrunner: 'Windranger', life_stealer: 'Lifestealer',
+  queenofpain: 'Queen of Pain', necrolyte: 'Necrophos', doom_bringer: 'Doom', treant: 'Treant Protector',
+  centaur: 'Centaur Warrunner', abyssal_underlord: 'Underlord', vengefulspirit: 'Vengeful Spirit',
+  keeper_of_the_light: 'Keeper of the Light', monkey_king: 'Monkey King', sand_king: 'Sand King'
+};
+
+/** shadow_fiend -> Shadow Fiend, nevermore -> Shadow Fiend */
 function heroLabel(name) {
   const key = heroKey(name);
   if (!key) return '';
+  if (HERO_NAMES[key]) return HERO_NAMES[key];
   return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 

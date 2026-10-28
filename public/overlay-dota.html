@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Arena Overlay</title>
+<script src="js/game-scope.js" data-game="dota"></script>
+<link rel="stylesheet" href="css/overlay.css">
+</head>
+<body class="is-loading">
+
+<!-- Фон полноэкранных сцен (картинка или видео). Задаётся на пульте. -->
+<div class="scene-bg" id="sceneBg" hidden>
+  <div class="scene-bg__media" id="sceneBgImage"></div>
+  <video class="scene-bg__media" id="sceneBgVideo" muted loop playsinline autoplay hidden></video>
+  <div class="scene-bg__dim" id="sceneBgDim"></div>
+</div>
+
+<!-- ============================ ИГРОВОЙ СЛОЙ ============================ -->
+<div class="layer layer-game" id="layerGame">
+
+  <!-- Верхняя лента: бренд турнира + команды + счёт серии.
+       По центру вырез, чтобы не перекрывать родной топбар Dota 2. -->
+  <header class="brandbar" id="brandbar">
+    <div class="brandbar__side brandbar__side--left">
+      <div class="team team--radiant">
+        <div class="team__logo" id="radLogo"></div>
+        <div class="team__text">
+          <div class="team__name" id="radName">Radiant</div>
+          <div class="team__meta" id="tournamentName">Кубок арены</div>
+        </div>
+      </div>
+      <div class="series" id="radSeries"></div>
+    </div>
+
+    <div class="brandbar__gap"></div>
+
+    <div class="brandbar__side brandbar__side--right">
+      <div class="series" id="direSeries"></div>
+      <div class="team team--dire">
+        <div class="team__text">
+          <div class="team__name" id="direName">Dire</div>
+          <div class="team__meta" id="stageName">Групповой этап</div>
+        </div>
+        <div class="team__logo" id="direLogo"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Разница в нетворсе: кто впереди и на сколько золота -->
+  <div class="networth" id="networth" hidden>
+    <div class="networth__value networth__value--rad" id="nwRad">0</div>
+    <div class="networth__bar">
+      <div class="networth__fill" id="nwFill"></div>
+      <div class="networth__center"></div>
+      <div class="networth__lead" id="nwLead">+0</div>
+    </div>
+    <div class="networth__value networth__value--dire" id="nwDire">0</div>
+  </div>
+
+  <!-- Вероятность победы. Включает комментатор; появляется и уходит плавно,
+       поэтому скрывается классом, а не атрибутом hidden. -->
+  <div class="winprob" id="winprob" aria-hidden="true">
+    <div class="winprob__head">
+      <span class="winprob__team winprob__team--rad">
+        <i class="winprob__logo" id="wpRadLogo"></i><span id="wpRadName">Radiant</span>
+      </span>
+      <span class="winprob__label">Шансы на победу</span>
+      <span class="winprob__team winprob__team--dire">
+        <span id="wpDireName">Dire</span><i class="winprob__logo" id="wpDireLogo"></i>
+      </span>
+    </div>
+    <div class="winprob__body">
+      <b class="winprob__pct winprob__pct--rad" id="wpRadPct">50%</b>
+      <div class="winprob__bar"><div class="winprob__fill" id="wpFill"></div></div>
+      <b class="winprob__pct winprob__pct--dire" id="wpDirePct">50%</b>
+    </div>
+    <div class="winprob__cmp" id="wpCmp">
+      <span class="winprob__cmp-time" id="wpCmpTime">10:00 → 25:30</span>
+      <span class="winprob__cmp-text" id="wpCmpText">Radiant 42% → 58%</span>
+      <span class="winprob__delta" id="wpCmpDelta">▲16</span>
+    </div>
+    <div class="winprob__note">Оценка по золоту, опыту, строениям и убийствам</div>
+  </div>
+
+  <!-- Рошан и время суток -->
+  <div class="objectives" id="objectives" hidden>
+    <div class="objective" id="roshan">
+      <span class="objective__label">Рошан</span>
+      <span class="objective__value" id="roshanValue">жив</span>
+    </div>
+  </div>
+
+  <!-- Панель составов: включается оператором, а не висит постоянно -->
+  <section class="rosters" id="rosters" hidden>
+    <div class="rosters__team rosters__team--rad">
+      <h2 class="rosters__title" id="rosterRadTitle">Radiant</h2>
+      <ul class="rosters__list" id="rosterRad"></ul>
+    </div>
+    <div class="rosters__team rosters__team--dire">
+      <h2 class="rosters__title" id="rosterDireTitle">Dire</h2>
+      <ul class="rosters__list" id="rosterDire"></ul>
+    </div>
+  </section>
+
+  <!-- Нижние трети для комментаторов -->
+  <div class="casters" id="casters" hidden>
+    <div class="casters__topic" id="castersTopic"></div>
+    <div class="casters__names">
+      <span id="casterLeft"></span>
+      <span class="casters__sep"></span>
+      <span id="casterRight"></span>
+    </div>
+  </div>
+
+  <div class="ticker" id="ticker" hidden><span id="tickerText"></span></div>
+</div>
+
+<!-- ============================ ДРАФТ ============================ -->
+<section class="layer layer-full draft" id="sceneDraft" hidden>
+  <div class="draft__head">
+    <div class="draft__side draft__side--rad" id="draftRadSide">
+      <div class="draft__team draft__team--rad" id="draftRadName">Radiant</div>
+      <div class="draft__reserve" id="draftRadReserve">резерв —</div>
+    </div>
+    <div class="draft__clock" id="draftClock">
+      <div class="draft__phase" id="draftPhase">Стадия выбора</div>
+      <div class="draft__timer" id="draftTimer">—</div>
+      <div class="draft__timer-label" id="draftTimerLabel">основное время</div>
+    </div>
+    <div class="draft__side draft__side--dire" id="draftDireSide">
+      <div class="draft__team draft__team--dire" id="draftDireName">Dire</div>
+      <div class="draft__reserve" id="draftDireReserve">резерв —</div>
+    </div>
+  </div>
+  <div class="draft__body">
+    <div class="draft__col" id="draftRadPicks"></div>
+    <div class="draft__col draft__col--dire" id="draftDirePicks"></div>
+  </div>
+  <div class="draft__bans">
+    <div class="draft__banrow" id="draftRadBans"></div>
+    <div class="draft__banlabel">Баны</div>
+    <div class="draft__banrow" id="draftDireBans"></div>
+  </div>
+</section>
+
+<!-- ============================ ЗАСТАВКИ ============================ -->
+<section class="layer layer-full pane" id="sceneStarting" hidden>
+  <div class="pane__eyebrow" id="startEyebrow">Кубок арены</div>
+  <h1 class="pane__title" id="startTitle">Трансляция скоро начнётся</h1>
+  <p class="pane__sub" id="startSub"></p>
+  <div class="pane__countdown" id="startCountdown" hidden></div>
+
+  <div class="versus" id="startVersus">
+    <div class="versus__team"><span id="vsRad">Radiant</span></div>
+    <div class="versus__mark">VS</div>
+    <div class="versus__team versus__team--dire"><span id="vsDire">Dire</span></div>
+  </div>
+</section>
+
+<section class="layer layer-full pane" id="sceneBreak" hidden>
+  <h1 class="pane__title" id="breakTitle">Технический перерыв</h1>
+  <p class="pane__sub">Скоро вернёмся</p>
+</section>
+
+<section class="layer layer-full pane pane--bracket" id="sceneBracket" hidden>
+  <h1 class="pane__title pane__title--sm" id="bracketTitle">Турнирная сетка</h1>
+  <div class="bracket" id="bracket"></div>
+</section>
+
+<section class="layer layer-full pane" id="sceneResults" hidden>
+  <div class="pane__eyebrow">Победа в карте</div>
+  <h1 class="pane__title" id="resultWinner">—</h1>
+  <div class="result__score" id="resultScore">0 : 0</div>
+  <p class="pane__sub" id="resultNote"></p>
+</section>
+
+<!-- ============================ ИТОГ КАРТЫ ============================ -->
+<section class="layer layer-full pane pane--scoreboard" id="sceneScoreboard" hidden>
+  <header class="sb-head">
+    <h1 class="sb-head__title">Итог карты</h1>
+    <div class="sb-head__time" id="sbTime">—:—</div>
+  </header>
+  <div class="sb-grid">
+    <div class="sb-team sb-team--rad" id="sbRad">
+      <div class="sb-team__head">
+        <span class="sb-team__name" id="sbRadName">Radiant</span>
+        <span class="sb-team__badge" id="sbRadBadge" hidden>Победа</span>
+        <span class="sb-team__nw" id="sbRadNw">0</span>
+      </div>
+      <div class="sb-cols"><span>Игрок</span><span>K/D/A</span><span>LH/DN</span><span>Net</span><span>Предметы</span></div>
+      <div class="sb-rows" id="sbRadRows"></div>
+    </div>
+    <div class="sb-team sb-team--dire" id="sbDire">
+      <div class="sb-team__head">
+        <span class="sb-team__name" id="sbDireName">Dire</span>
+        <span class="sb-team__badge" id="sbDireBadge" hidden>Победа</span>
+        <span class="sb-team__nw" id="sbDireNw">0</span>
+      </div>
+      <div class="sb-cols"><span>Игрок</span><span>K/D/A</span><span>LH/DN</span><span>Net</span><span>Предметы</span></div>
+      <div class="sb-rows" id="sbDireRows"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ ИТОГИ КАРТЫ ============================
+     Собираются автоматически, когда игра закончилась, и висят, пока их не
+     скроют или не начнётся новая карта. До конца карты показывают текущую статистику. -->
+<section class="layer layer-full pane mapres" id="mapResults" aria-hidden="true">
+  <header class="mapres__head">
+    <div class="mapres__title-wrap">
+      <div class="mapres__eyebrow" id="mrEyebrow">Итоги карты</div>
+      <h1 class="mapres__title" id="mrTitle">Победа Radiant</h1>
+    </div>
+    <div class="mapres__score">
+      <span class="mapres__kills mapres__kills--rad" id="mrRadScore">0</span>
+      <span class="mapres__colon">:</span>
+      <span class="mapres__kills mapres__kills--dire" id="mrDireScore">0</span>
+    </div>
+    <div class="mapres__meta">
+      <div class="mapres__duration" id="mrDuration">0:00</div>
+      <div class="mapres__sub" id="mrSub">длительность</div>
+    </div>
+  </header>
+
+  <div class="mapres__teams">
+    <div class="mrteam mrteam--rad" id="mrRad">
+      <div class="mrteam__head">
+        <span class="mrteam__name" id="mrRadName">Radiant</span>
+        <span class="mrteam__badge">Победа</span>
+        <span class="mrteam__nw" id="mrRadNw"></span>
+      </div>
+      <div class="mrteam__table" id="mrRadTable"></div>
+    </div>
+    <div class="mrteam mrteam--dire" id="mrDire">
+      <div class="mrteam__head">
+        <span class="mrteam__name" id="mrDireName">Dire</span>
+        <span class="mrteam__badge">Победа</span>
+        <span class="mrteam__nw" id="mrDireNw"></span>
+      </div>
+      <div class="mrteam__table" id="mrDireTable"></div>
+    </div>
+  </div>
+
+  <footer class="mapres__foot" id="mrFoot"></footer>
+</section>
+
+<!-- Плашка "а знаете ли вы" — переключается оператором или хоткеем Alt+T -->
+<div class="trivia" id="trivia" hidden>
+  <div class="trivia__tag">Знаете ли вы</div>
+  <div class="trivia__title" id="triviaTitle"></div>
+  <div class="trivia__text" id="triviaText"></div>
+</div>
+
+<!-- Индикатор связи. Виден только в браузере, в OBS скрыт (см. ?obs=1) -->
+<div class="conn" id="conn">нет связи с сервером</div>
+
+<script src="js/dota.js"></script>
+<script src="js/overlay.js"></script>
+</body>
+</html>

@@ -2,14 +2,15 @@
    поэтому крупные кликабельные зоны важнее плотности. */
 
 :root {
-  --bg: #0E1418;
-  --card: #151E24;
-  --line: #24323B;
-  --text: #E4ECF1;
-  --muted: #8395A0;
-  --accent: #F0B429;
-  --live: #4CAF50;
-  --dead: #C4453A;
+  /* фирменная палитра — та же, что у пульта CS2 и общего пульта */
+  --bg: #0B0916;
+  --card: #141026;
+  --line: #2A2346;
+  --text: #ECE8FA;
+  --muted: #9089B3;
+  --accent: #D8FF3E;
+  --live: #45D483;
+  --dead: #FF4A5E;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,7 +18,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: 'Segoe UI', Inter, system-ui, sans-serif;
   font-size: 14px;
   padding: 0 22px 60px;
 }
@@ -33,7 +34,7 @@ h1 { font-size: 20px; font-weight: 600; }
 .hint { color: var(--muted); font-size: 12.5px; margin-top: 4px; max-width: 70ch; }
 kbd {
   display: inline-block; padding: 1px 6px; margin: 0 1px;
-  background: #1B242B; border: 1px solid var(--line); border-radius: 3px;
+  background: #221B3E; border: 1px solid var(--line); border-radius: 3px;
   font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
   color: var(--text);
 }
@@ -67,7 +68,7 @@ h2 { font-size: 15px; font-weight: 600; }
 .field > span { color: var(--muted); font-size: 12px; }
 
 input[type=text], input:not([type]), input[type=datetime-local], select, textarea {
-  background: #0D1418;
+  background: #0F0C1E;
   border: 1px solid var(--line);
   border-radius: 4px;
   color: var(--text);
@@ -84,7 +85,7 @@ textarea { min-height: 150px; font-family: ui-monospace, Menlo, Consolas, monosp
 .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 
 button, .btnlink {
-  background: #223039;
+  background: #1A1530;
   border: 1px solid var(--line);
   border-radius: 4px;
   color: var(--text);
@@ -94,7 +95,7 @@ button, .btnlink {
   text-decoration: none;
   display: inline-block;
 }
-button:hover, .btnlink:hover { background: #2B3B45; }
+button:hover, .btnlink:hover { background: #241D40; }
 button.ghost { background: transparent; color: var(--muted); }
 
 .scenes { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -123,3 +124,7 @@ input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accent); }
   border: 1px solid #7A3A12; border-radius: 6px;
   font-weight: 600;
 }
+
+/* Внутри общего пульта: шапку и статус показывает он сам. */
+html.is-embedded body { padding-top: 16px; }
+html.is-embedded .top { display: none; }

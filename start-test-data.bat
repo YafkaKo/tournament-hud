@@ -1,5 +1,5 @@
 @echo off
-rem Test data instead of Dota 2. The menu itself is in tools\test-menu.js.
+rem Test data instead of Dota 2 or CS2. The menu itself is in tools\test-menu.js.
 title HUD test data
 cd /d "%~dp0"
 where node >nul 2>nul

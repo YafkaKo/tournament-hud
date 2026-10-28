@@ -1,5 +1,5 @@
 {
-  "_comment": "Агент хоткеев. Сочетания: Ctrl, Alt, Shift, Win + клавиша (F1–F24, A–Z, 0–9, Numpad0–9, Space и т.д.). scene — точное имя сцены в OBS, hud — переключатель плашки на сервере HUD (probability или mapResults).",
+  "_comment": "Агент хоткеев. Сочетания: Ctrl, Alt, Shift, Win + клавиша (F1–F24, A–Z, 0–9, Numpad0–9, Space и т.д.). scene — точное имя сцены в OBS; action — любое действие сервера HUD (список: http://127.0.0.1:3000/api/actions?all=1); hud — старый формат (probability или mapResults).",
 
   "obs": {
     "url": "ws://127.0.0.1:4455",
@@ -25,7 +25,9 @@
     { "keys": "Ctrl+Alt+F7", "scene": "Сетка" },
     { "keys": "Ctrl+Alt+F8", "scene": "Итоги" },
 
-    { "keys": "Ctrl+Alt+F9",  "hud": "probability" },
-    { "keys": "Ctrl+Alt+F10", "hud": "mapResults" }
+    { "keys": "Ctrl+Alt+F9",  "action": "toggle-probability" },
+    { "keys": "Ctrl+Alt+F10", "action": "toggle-mapResults" },
+    { "keys": "Ctrl+Alt+F11", "action": "ads-play" },
+    { "keys": "Ctrl+Alt+F12", "action": "ads-stop" }
   ]
 }

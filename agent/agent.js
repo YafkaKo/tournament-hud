@@ -106,11 +106,12 @@ function buildBindings(cfg, keyNames) {
   for (const hk of cfg.hotkeys) {
     try {
       const combo = parseCombo(hk.keys, keyNames);
-      if (!hk.scene && !hk.hud) throw new Error('нужно указать "scene" или "hud"');
+      if (!hk.scene && !hk.hud && !hk.action) throw new Error('нужно указать "scene", "hud" или "action"');
+      if (hk.action && !/^[a-zA-Z0-9+_-]+$/.test(hk.action)) throw new Error(`action: «${hk.action}» — имя действия, например scene-starting (список: /api/actions?all=1)`);
       if (hk.hud && !HUD_TARGETS.includes(hk.hud)) throw new Error(`hud: «${hk.hud}» — можно ${HUD_TARGETS.join(', ')}`);
       const id = comboId(combo);
       if (bindings.has(id)) throw new Error('это сочетание уже занято другой строкой');
-      bindings.set(id, { combo, scene: hk.scene || null, hud: hk.hud || null });
+      bindings.set(id, { combo, scene: hk.scene || null, hud: hk.hud || null, action: hk.action || null });
     } catch (err) {
       problems += 1;
       log.error(`Хоткей ${JSON.stringify(hk.keys)}: ${err.message}`);
@@ -223,11 +224,28 @@ async function toggleHud(cfg, target) {
   }
 }
 
+/** Любое быстрое действие сервера: scene-starting, toggle-hud, ads-play и т.д. */
+async function runAction(cfg, name) {
+  const url = `${cfg.hud.url.replace(/\/$/, '')}/api/action/${encodeURIComponent(name)}`;
+  try {
+    const res = await fetch(url, { method: 'POST', signal: AbortSignal.timeout(3000) });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 404) { log.error(`HUD: действия «${name}» нет. Список: ${cfg.hud.url}/api/actions?all=1`); return false; }
+    if (!res.ok) { log.warn(`HUD: ${name} — ${data.error || res.status}`); return false; }
+    log.ok(`HUD: ${name}${typeof data.on === 'boolean' ? (data.on ? ' — показано' : ' — скрыто') : ''}`);
+    return true;
+  } catch (err) {
+    log.error(`Сервер HUD недоступен (${cfg.hud.url}): ${err.cause?.code || err.message}`);
+    return false;
+  }
+}
+
 /* ----------------------------------------------------------- запуск */
 
 async function run(binding, obs, cfg) {
   if (binding.scene) return obs.setScene(binding.scene);
   if (binding.hud) return toggleHud(cfg, binding.hud);
+  if (binding.action) return runAction(cfg, binding.action);
   return false;
 }
 
@@ -282,7 +300,7 @@ async function main() {
   console.log('  Агент хоткеев трансляции');
   console.log('  ─────────────────────────────────────────────');
   for (const b of bindings.values()) {
-    const what = b.scene ? `сцена OBS «${b.scene}»` : `плашка HUD: ${b.hud}`;
+    const what = b.scene ? `сцена OBS «${b.scene}»` : b.hud ? `плашка HUD: ${b.hud}` : `действие HUD: ${b.action}`;
     console.log(`  ${b.combo.label.padEnd(16)} → ${what}`);
   }
   console.log('');
