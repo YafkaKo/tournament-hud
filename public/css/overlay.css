@@ -131,6 +131,7 @@ html, body {
 }
 .brandbar__side--left  {
     padding: 0 0 0 30px;
+    margin-left:120px;
   justify-content: flex-start;
   clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
 }
