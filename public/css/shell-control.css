@@ -320,6 +320,8 @@ input[type=number] { width: 90px; }
   border: 0;
   transform-origin: 0 0;
   pointer-events: none;
+  /* у пульта тёмная схема, у оверлея — обычная; без этого браузер заливает рамку белым */
+  color-scheme: normal;
 }
 
 .tpreview { position: relative; margin-top: 14px; }

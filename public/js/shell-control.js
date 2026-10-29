@@ -279,6 +279,20 @@ function renderAds() {
       </li>`).join('') : '<li class="empty">Переходов нет — реклама будет начинаться и заканчиваться прямой склейкой.</li>';
   }
   renderLive();
+  probeNew();
+}
+
+// Файлы, которые положили в папку руками, приходят без длительности и превью —
+// открываем их в пульте так же, как после загрузки: заодно проверяем, что они играют.
+const probed = new Set();
+async function probeNew() {
+  for (const [kind, list] of [['clip', adsData.clips], ['transition', adsData.transitions]]) {
+    for (const item of list) {
+      if (item.duration || probed.has(item.id)) continue;
+      probed.add(item.id);
+      await probe(kind, item);
+    }
+  }
 }
 
 function renderLive() {

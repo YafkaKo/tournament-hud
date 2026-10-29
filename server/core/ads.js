@@ -164,8 +164,70 @@ function createAds({ root, config, state, hub, change, onUpdate }) {
     return ads()[KINDS[kind]];
   }
 
+  // ---------------------------------------------------------------- файлы, положенные в папку руками
+  //
+  // Ролик можно не загружать через пульт, а просто скопировать в
+  // public/assets/ads/clips (переход — в public/assets/ads/transitions).
+  // Сервер раз в несколько секунд смотрит в папки: новые файлы добавляет в список
+  // (ролики — сразу в очередь), а записи о файлах, которых больше нет, убирает.
+
+  const VIDEO_EXT = /\.(mp4|webm|m4v)$/i;
+
+  function syncFolders() {
+    const found = {};
+    for (const kind of Object.keys(KINDS)) {
+      try {
+        found[kind] = fs.readdirSync(SUB[kind]).filter((f) => VIDEO_EXT.test(f) && !f.endsWith('.part'));
+      } catch {
+        found[kind] = null;     // папки ещё нет — ничего не трогаем
+      }
+    }
+    const a = ads();
+    const added = { clip: [], transition: [] };
+    const removed = { clip: [], transition: [] };
+    for (const kind of Object.keys(KINDS)) {
+      if (!found[kind]) continue;
+      const known = new Set(a[KINDS[kind]].map((x) => x.file));
+      for (const file of found[kind]) {
+        if (known.has(file)) continue;
+        const name = file.replace(/\.[^.]+$/, '').replace(/^\d{10,}-/, '').replace(/[_-]+/g, ' ').trim().slice(0, 60) || 'Ролик';
+        let size = 0;
+        try { size = fs.statSync(path.join(SUB[kind], file)).size; } catch { continue; }
+        const id = crypto.randomBytes(5).toString('hex');
+        added[kind].push(kind === 'clip'
+          ? { id, file, name, duration: 0, poster: '', transition: '', volume: 100, size }
+          : { id, file, name, cutMs: 500, volume: 100, size });
+      }
+      const present = new Set(found[kind]);
+      for (const x of a[KINDS[kind]]) {
+        const playingNow = play.status === 'playing' && play.items.some((i) => i.id === x.id);
+        if (!present.has(x.file) && !playingNow) removed[kind].push(x.id);
+      }
+    }
+    const changed = Object.values(added).some((l) => l.length) || Object.values(removed).some((l) => l.length);
+    if (!changed) return false;
+    change(() => {
+      const st = ads();
+      for (const kind of Object.keys(KINDS)) {
+        const gone = new Set(removed[kind]);
+        st[KINDS[kind]] = [...st[KINDS[kind]].filter((x) => !gone.has(x.id)), ...added[kind]];
+      }
+      st.queue = [...st.queue.filter((id) => !removed.clip.includes(id)), ...added.clip.map((c) => c.id)];
+      if (removed.transition.includes(st.defaultTransition)) st.defaultTransition = '';
+      if (!st.defaultTransition && st.transitions[0]) st.defaultTransition = st.transitions[0].id;
+    });
+    for (const c of added.clip) console.log(`[ads] найден в папке ролик ${c.file}`);
+    for (const t of added.transition) console.log(`[ads] найден в папке переход ${t.file}`);
+    return true;
+  }
+
+  for (const dir of Object.values(SUB)) fs.mkdirSync(dir, { recursive: true });
+  setImmediate(syncFolders);          // после запуска сервера, когда всё уже создано
+  setInterval(syncFolders, 3000);
+
   function routes(app, express) {
     app.get('/api/ads', (req, res) => {
+      syncFolders();
       const a = ads();
       const decorate = (kind) => (x) => ({ ...x, url: urlOf(kind, x.file), poster: x.poster ? `/assets/ads/posters/${encodeURIComponent(x.poster)}` : '' });
       res.json({
