@@ -290,9 +290,23 @@ async function probeNew() {
     for (const item of list) {
       if (item.duration || probed.has(item.id)) continue;
       probed.add(item.id);
-      await probe(kind, item);
+      await probeWithRetry(kind, item);
     }
   }
+}
+
+/**
+ * Файл могли ещё не докопировать, Windows или OneDrive могли его держать —
+ * поэтому, прежде чем пугать ошибкой, пробуем открыть ещё раз (всего 3 попытки).
+ */
+async function probeWithRetry(kind, item) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const last = attempt === 3;
+    const result = await probe(kind, item, { quiet: !last });
+    if (result === 'ok') { if (attempt > 1) adsMsg(''); return true; }
+    if (!last) await new Promise((r) => setTimeout(r, 6000));
+  }
+  return false;
 }
 
 function renderLive() {
@@ -441,7 +455,7 @@ function upload(kind, file) {
       return;
     }
     pct.textContent = 'проверяю…';
-    await probe(kind, body);
+    await probeWithRetry(kind, body);
     row.remove();
   };
   xhr.onerror = () => { row.classList.add('is-error'); pct.textContent = 'нет связи с сервером'; };
@@ -449,35 +463,47 @@ function upload(kind, file) {
 }
 
 /**
- * Открывает загруженный файл в браузере пульта: длительность, превью-кадр,
- * и главное — проверка, что видео вообще декодируется. OBS построен на том же
- * Chromium: если пульт не смог открыть файл, OBS его, скорее всего, тоже не сыграет.
+ * Открывает файл в браузере пульта: длительность, превью-кадр и главное —
+ * проверка, что видео вообще декодируется. OBS построен на том же Chromium:
+ * если пульт не смог открыть файл, OBS его, скорее всего, тоже не сыграет.
+ * Возвращает 'ok' | 'error' | 'timeout'. quiet — не показывать ошибку (будет ещё попытка).
  */
-function probe(kind, item) {
+function probe(kind, item, { quiet = false } = {}) {
   return new Promise((resolve) => {
     const v = document.createElement('video');
     v.muted = true;
     v.preload = 'auto';
-    v.src = item.url;
+    // ?t= — чтобы браузер не взял из кэша недокачанную версию файла
+    v.src = `${item.url}${item.url.includes('?') ? '&' : '?'}t=${Date.now()}`;
     let done = false;
-    const finish = async (patch) => {
+    const warn = (text) => { if (!quiet) warnFile(item, text); };
+    const finish = (result) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      try { if (patch) await api(`/api/ads/${kind}/${item.id}`, { method: 'PATCH', body: patch }); } catch { /* */ }
       v.removeAttribute('src'); v.load();
-      resolve();
+      resolve(result);
     };
-    const timer = setTimeout(() => { warnFile(item, 'Браузер не смог открыть файл за 15 секунд. Проверьте ролик в превью — возможно, нужен другой кодек (см. README).'); finish(null); }, 15000);
+    const timer = setTimeout(() => {
+      warn('Браузер не смог открыть файл за 30 секунд. Если файл ещё копируется — подождите и обновите страницу. Иначе проверьте кодек (см. README).');
+      finish('timeout');
+    }, 30000);
     v.onerror = () => {
-      warnFile(item, 'Браузер не открыл этот файл — OBS его, скорее всего, тоже не сыграет. Перекодируйте в MP4 (H.264 + AAC) или WebM — команда в README.');
-      finish(null);
+      warn('Браузер не открыл этот файл — OBS его, скорее всего, тоже не сыграет. Перекодируйте в MP4 (H.264 + AAC) или WebM — команда в README.');
+      finish('error');
     };
-    v.onloadedmetadata = () => {
+    v.onloadedmetadata = async () => {
+      if (!v.videoWidth) {
+        warn('В файле нет картинки, которую понимает браузер (часто так с H.265/HEVC). Перекодируйте в H.264.');
+        finish('error');
+        return;
+      }
+      // Видео открылось — длительность сохраняем сразу, превью-кадр уже не обязателен.
       const duration = Math.round(v.duration * 10) / 10;
-      if (!v.videoWidth) warnFile(item, 'В файле нет картинки, которую понимает браузер (часто так с H.265/HEVC). Перекодируйте в H.264.');
-      if (kind === 'transition') { finish({ duration }); return; }
-      v.currentTime = Math.min(1.5, (v.duration || 4) * 0.25);
+      try { await api(`/api/ads/${kind}/${item.id}`, { method: 'PATCH', body: { duration } }); } catch { /* */ }
+      if (kind === 'transition') { finish('ok'); return; }
+      clearTimeout(timer);
+      const posterTimer = setTimeout(() => finish('ok'), 10000);
       v.onseeked = () => {
         try {
           const c = document.createElement('canvas');
@@ -489,10 +515,12 @@ function probe(kind, item) {
           g.drawImage(v, (320 - w) / 2, (180 - h) / 2, w, h);
           c.toBlob(async (blob) => {
             if (blob) await fetch(`/api/ads/clip/${item.id}/poster`, { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob }).catch(() => {});
-            finish({ duration });
+            clearTimeout(posterTimer);
+            finish('ok');
           }, 'image/jpeg', 0.8);
-        } catch { finish({ duration }); }
+        } catch { clearTimeout(posterTimer); finish('ok'); }
       };
+      v.currentTime = Math.min(1.5, (v.duration || 4) * 0.25);
     };
   });
 }

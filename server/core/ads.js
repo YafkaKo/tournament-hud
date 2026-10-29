@@ -172,6 +172,7 @@ function createAds({ root, config, state, hub, change, onUpdate }) {
   // (ролики — сразу в очередь), а записи о файлах, которых больше нет, убирает.
 
   const VIDEO_EXT = /\.(mp4|webm|m4v)$/i;
+  const settling = new Map();    // файл → размер на прошлой проверке (ждём конца копирования)
 
   function syncFolders() {
     const found = {};
@@ -191,8 +192,16 @@ function createAds({ root, config, state, hub, change, onUpdate }) {
       for (const file of found[kind]) {
         if (known.has(file)) continue;
         const name = file.replace(/\.[^.]+$/, '').replace(/^\d{10,}-/, '').replace(/[_-]+/g, ' ').trim().slice(0, 60) || 'Ролик';
-        let size = 0;
-        try { size = fs.statSync(path.join(SUB[kind], file)).size; } catch { continue; }
+        let st;
+        try { st = fs.statSync(path.join(SUB[kind], file)); } catch { continue; }
+        const size = st.size;
+        // Файл ещё копируется: берём его, только когда размер не меняется
+        // между двумя проверками и файл не трогали последние 3 секунды.
+        const key = `${kind}/${file}`;
+        const prev = settling.get(key);
+        settling.set(key, size);
+        if (!size || prev !== size || Date.now() - st.mtimeMs < 3000) continue;
+        settling.delete(key);
         const id = crypto.randomBytes(5).toString('hex');
         added[kind].push(kind === 'clip'
           ? { id, file, name, duration: 0, poster: '', transition: '', volume: 100, size }
