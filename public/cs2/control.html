@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Пульт трансляции CS2</title>
 <link rel="icon" href="data:,">
-<script src="/js/game-scope.js" data-game="cs2"></script>
+<script src="/js/game-scope.js?v=20261102" data-game="cs2"></script>
 <script>
   // Пульт CS2 живёт внутри общего пульта. Открыли напрямую — переходим туда.
   if (!window.HUD_EMBEDDED && !/standalone=1/.test(location.search)) location.replace('/control.html');
 </script>
-<link rel="stylesheet" href="css/control.css">
+<link rel="stylesheet" href="css/control.css?v=20261102">
 </head>
 <body>
 
@@ -280,7 +280,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="js/maps.js"></script>
-<script src="js/control.js"></script>
+<script src="js/maps.js?v=20261102"></script>
+<script src="js/control.js?v=20261102"></script>
 </body>
 </html>

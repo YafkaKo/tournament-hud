@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Arena Overlay</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="css/shell-overlay.css">
+<link rel="stylesheet" href="css/shell-overlay.css?v=20261102">
 </head>
 <body class="is-loading">
 
@@ -17,19 +17,26 @@
 <iframe class="game" id="frameDota" data-game="dota" title="HUD Dota 2" tabindex="-1"></iframe>
 <iframe class="game" id="frameCs2" data-game="cs2" title="HUD CS2" tabindex="-1"></iframe>
 
-<!-- Анимация пика героя -->
+<!-- Анимация пика героя: большая сцена по центру, ниже шапки драфта -->
 <div class="pickfx" id="pickfx" aria-hidden="true">
-  <div class="pickfx__card" id="pickCard">
-    <div class="pickfx__media">
-      <div class="pickfx__img" id="pickImg"></div>
-      <video class="pickfx__video" id="pickVideo" muted playsinline preload="auto"></video>
-      <div class="pickfx__shine"></div>
+  <div class="pickfx__scene" id="pickScene">
+    <div class="pickfx__veil"></div>
+    <div class="pickfx__rays"></div>
+    <div class="pickfx__ring"></div>
+    <div class="pickfx__stage">
+      <div class="pickfx__frame">
+        <div class="pickfx__img" id="pickImg"></div>
+        <video class="pickfx__video" id="pickVideo" muted playsinline preload="auto"></video>
+        <div class="pickfx__flash"></div>
+        <div class="pickfx__shine"></div>
+      </div>
+      <div class="pickfx__label">
+        <div class="pickfx__eyebrow"><span id="pickTeam">Radiant</span><i></i><span id="pickNum">пик 1</span></div>
+        <div class="pickfx__hero" id="pickHero">Hero</div>
+        <div class="pickfx__bar"></div>
+      </div>
     </div>
-    <div class="pickfx__text">
-      <div class="pickfx__eyebrow"><span id="pickTeam">Radiant</span><i></i><span id="pickNum">пик</span></div>
-      <div class="pickfx__hero" id="pickHero">Hero</div>
-    </div>
-    <div class="pickfx__sparks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="pickfx__sparks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   </div>
   <audio id="pickVoice" preload="auto"></audio>
 </div>
@@ -43,7 +50,8 @@
 
 <div class="conn" id="conn">нет связи с сервером</div>
 
-<script src="js/dota.js"></script>
-<script src="js/shell-overlay.js"></script>
+<script src="js/heroes.js?v=20261102"></script>
+<script src="js/dota.js?v=20261102"></script>
+<script src="js/shell-overlay.js?v=20261102"></script>
 </body>
 </html>

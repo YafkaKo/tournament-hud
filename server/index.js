@@ -146,10 +146,18 @@ app.use(express.json({ limit: '5mb' }));
 
 // Пульт для телефона — отдельная простая страница.
 app.get(['/control', '/control/'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(ROOT, 'public', 'caster.html'));
 });
 
-app.use(express.static(path.join(ROOT, 'public')));
+// Страницы, скрипты и стили — без кэша: браузер в OBS любит держать старые версии,
+// и после обновления HUD в эфире оставалась бы прежняя графика (так было с именами героев).
+// Картинки, шрифты и видео кэшируются как обычно.
+app.use(express.static(path.join(ROOT, 'public'), {
+  setHeaders(res, file) {
+    if (/\.(html|js|css|json|webmanifest)$/i.test(file)) res.setHeader('Cache-Control', 'no-cache');
+  }
+}));
 
 // Игры шлют состояние сюда. Путь совпадает с "uri" в конфигах GSI.
 // Открыть его в браузере нельзя: браузер делает GET, а сюда приходит только POST.

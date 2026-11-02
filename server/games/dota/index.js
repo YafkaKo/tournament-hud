@@ -172,7 +172,7 @@ function createDota(ctx) {
           const sig = `${side}:${m[1]}:${team[key]}`;
           if (draftSeen.keys.has(sig)) continue;
           draftSeen.keys.add(sig);
-          fresh.push({ hero: String(team[key]), side, slot: Number(m[1]) });
+          fresh.push({ hero: String(team[key]), heroId: Number(team[`pick${m[1]}_id`]) || 0, side, slot: Number(m[1]) });
         }
       }
     }
@@ -185,7 +185,7 @@ function createDota(ctx) {
           const sig = `${side}:${pk}:${h.name}`;
           if (draftSeen.keys.has(sig)) continue;
           draftSeen.keys.add(sig);
-          fresh.push({ hero: String(h.name), side, slot: Number(String(pk).replace(/\D/g, '')) || 0 });
+          fresh.push({ hero: String(h.name), heroId: Number(h.id) || 0, side, slot: Number(String(pk).replace(/\D/g, '')) || 0 });
         }
       }
     }

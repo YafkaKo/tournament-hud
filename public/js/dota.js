@@ -2,27 +2,39 @@
 
 const CDN = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react';
 
-/** npc_dota_hero_shadow_fiend | shadow_fiend -> shadow_fiend */
-function heroKey(name) {
-  if (!name) return '';
-  return String(name).replace(/^npc_dota_hero_/, '');
+// Таблица героев — public/js/heroes.js (подключается перед этим файлом).
+const HERO_BY_KEY = new Map();
+const HERO_BY_ID = new Map();
+for (const [id, key, name] of (typeof DOTA_HEROES !== 'undefined' ? DOTA_HEROES : [])) {
+  HERO_BY_KEY.set(key, { id, key, name });
+  HERO_BY_ID.set(id, { id, key, name });
 }
 
-// У части героев внутреннее имя в игре не совпадает с привычным.
-const HERO_NAMES = {
-  nevermore: 'Shadow Fiend', antimage: 'Anti-Mage', obsidian_destroyer: 'Outworld Destroyer', wisp: 'Io',
-  zuus: 'Zeus', furion: "Nature's Prophet", magnataur: 'Magnus', skeleton_king: 'Wraith King',
-  shredder: 'Timbersaw', rattletrap: 'Clockwerk', windrunner: 'Windranger', life_stealer: 'Lifestealer',
-  queenofpain: 'Queen of Pain', necrolyte: 'Necrophos', doom_bringer: 'Doom', treant: 'Treant Protector',
-  centaur: 'Centaur Warrunner', abyssal_underlord: 'Underlord', vengefulspirit: 'Vengeful Spirit',
-  keeper_of_the_light: 'Keeper of the Light', monkey_king: 'Monkey King', sand_king: 'Sand King'
-};
+/**
+ * Внутреннее имя героя из того, что прислала игра:
+ *   npc_dota_hero_wisp | wisp | " NPC_DOTA_HERO_WISP " | 91 (id) -> wisp
+ */
+function heroKey(name) {
+  if (name === null || name === undefined || name === '') return '';
+  if (typeof name === 'number' || /^\d+$/.test(String(name).trim())) {
+    const h = HERO_BY_ID.get(Number(name));
+    return h ? h.key : '';
+  }
+  return String(name).trim().toLowerCase().replace(/^npc_dota_hero_/, '');
+}
 
-/** shadow_fiend -> Shadow Fiend, nevermore -> Shadow Fiend */
-function heroLabel(name) {
+/**
+ * Имя героя, как его видят зрители: wisp -> Io, rattletrap -> Clockwerk.
+ * id — номер героя из игры (если есть): по нему имя находится надёжнее всего.
+ */
+function heroLabel(name, id) {
+  const byId = Number(id) > 0 ? HERO_BY_ID.get(Number(id)) : null;
+  if (byId) return byId.name;
   const key = heroKey(name);
   if (!key) return '';
-  if (HERO_NAMES[key]) return HERO_NAMES[key];
+  const hero = HERO_BY_KEY.get(key);
+  if (hero) return hero.name;
+  // Героя нет в таблице (новый патч) — хотя бы читаемо: some_hero -> Some Hero
   return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 

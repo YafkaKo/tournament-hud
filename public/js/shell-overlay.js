@@ -250,16 +250,18 @@ const Ads = (() => {
 
 /* ====================================================================== ПИК ГЕРОЯ
 
-   Карточка героя со стороны пикнувшей команды: анимированный портрет
-   (видео с CDN Steam; не загрузилось — обычный портрет с движением),
-   название команды, номер пика, имя героя и фраза героя (если файл есть). */
+   Большая сцена по центру экрана (ниже шапки драфта): анимированный герой
+   (видео с CDN Valve; не загрузилось — портрет с движением), лучи и рамка
+   в цвете команды, название команды, номер пика, имя героя и его фраза
+   (если файл есть). Пики пачкой идут по очереди. */
 
 const Pick = (() => {
   const RENDER = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders';
   const DURATION = 3600;
   const queue = [];
   let busy = false;
-  const card = $('pickCard');
+  const scene = $('pickScene');
+  const frame = scene.querySelector('.pickfx__frame');
   const video = $('pickVideo');
   const voice = $('pickVoice');
 
@@ -275,29 +277,31 @@ const Pick = (() => {
     if (!p) { busy = false; return; }
     busy = true;
     play(p);
-    setTimeout(next, DURATION + 150);
+    setTimeout(next, DURATION + 200);
   }
 
   function play(p) {
-    const key = heroKey(p.hero);
+    const key = heroKey(p.heroId || p.hero);
     const side = p.side === 'dire' ? 'dire' : 'radiant';
-    card.classList.remove('is-playing', 'is-radiant', 'is-dire');
-    void card.offsetWidth;   // перезапуск CSS-анимации
-    card.classList.add(side === 'dire' ? 'is-dire' : 'is-radiant');
+    scene.classList.remove('is-playing', 'is-radiant', 'is-dire');
+    void scene.offsetWidth;   // перезапуск CSS-анимации
+    scene.classList.add(side === 'dire' ? 'is-dire' : 'is-radiant');
 
     $('pickTeam').textContent = p.team || (side === 'dire' ? 'Dire' : 'Radiant');
     $('pickNum').textContent = Number.isFinite(p.slot) ? `пик ${p.slot + 1}` : 'пик';
-    const name = heroLabel(key);
-    $('pickHero').textContent = name;
-    $('pickHero').classList.toggle('is-long', name.length > 11);
+    const name = heroLabel(key, p.heroId);
+    const hero = $('pickHero');
+    hero.textContent = name;
+    hero.classList.toggle('is-long', name.length > 12 && name.length <= 16);
+    hero.classList.toggle('is-xlong', name.length > 16);
 
     $('pickImg').style.backgroundImage = `url('${heroImage(key)}'), linear-gradient(135deg, rgba(108,77,255,.45), rgba(255,61,138,.25))`;
-    video.classList.remove('is-ready');
-    video.oncanplay = () => { video.classList.add('is-ready'); video.play().catch(() => {}); };
-    video.onerror = () => video.classList.remove('is-ready');
+    frame.classList.remove('has-video');
+    video.oncanplay = () => { frame.classList.add('has-video'); video.play().catch(() => {}); };
+    video.onerror = () => frame.classList.remove('has-video');
     video.src = `${RENDER}/${key}.webm`;
 
-    card.classList.add('is-playing');
+    scene.classList.add('is-playing');
 
     if (MAIN && p.voice) {
       voice.src = p.voice;

@@ -47,6 +47,7 @@ function createPickFx({ state, hub, change }) {
         side: p.side,
         slot: p.slot,
         hero: key,
+        heroId: Number(p.heroId) || 0,
         team: s.shared.teams[teamKey]?.name || (p.side === 'dire' ? 'Dire' : 'Radiant'),
         voice: voiceUrl(key)
       };
