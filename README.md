@@ -373,6 +373,8 @@ After Effects, Premiere, DaVinci):
 ffmpeg -framerate 60 -i кадр_%04d.png -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 4M -auto-alt-ref 0 переход.webm
 ```
 
+
+
 или из MOV с альфой (ProRes 4444): `ffmpeg -i переход.mov -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 4M -auto-alt-ref 0 переход.webm`.
 
 ### Анимация пика

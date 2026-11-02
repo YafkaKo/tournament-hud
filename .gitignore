@@ -9,3 +9,6 @@ public/assets/ads/
 public/assets/logos/
 public/assets/heroes/voice/*
 !public/assets/heroes/voice/README.txt
+
+# служебная папка инструмента graphify
+graphify-out/
