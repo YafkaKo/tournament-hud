@@ -276,17 +276,32 @@ const Pick = (() => {
     const p = queue.shift();
     if (!p) { busy = false; return; }
     busy = true;
-    play(p);
-    setTimeout(next, DURATION + 200);
+    play(p).then(() => setTimeout(next, DURATION + 200));
   }
 
-  function play(p) {
+  // Сцена стартует, когда анимированный герой загрузился, — чтобы он появлялся
+  // вместе со вспышкой, а не через секунду после неё. Ждём не дольше WAIT_MS:
+  // не успел — сцена идёт, герой проявится, как только загрузится.
+  const WAIT_MS = 1500;
+  function loadVideo(key) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (ok) => { if (done) return; done = true; clearTimeout(t); resolve(ok); };
+      const t = setTimeout(() => finish(false), WAIT_MS);
+      frame.classList.remove('has-video');
+      video.oncanplay = () => finish(true);
+      video.onloadeddata = () => finish(true);
+      video.onerror = () => finish(false);
+      video.src = `${RENDER}/${key}.webm`;
+      video.load();
+    });
+  }
+
+  async function play(p) {
     const key = heroKey(p.heroId || p.hero);
     const side = p.side === 'dire' ? 'dire' : 'radiant';
-    scene.classList.remove('is-playing', 'is-radiant', 'is-dire');
-    void scene.offsetWidth;   // перезапуск CSS-анимации
-    scene.classList.add(side === 'dire' ? 'is-dire' : 'is-radiant');
 
+    // Пока грузится герой, готовим подписи и фон (сама сцена ещё не видна).
     $('pickTeam').textContent = p.team || (side === 'dire' ? 'Dire' : 'Radiant');
     $('pickNum').textContent = Number.isFinite(p.slot) ? `пик ${p.slot + 1}` : 'пик';
     const name = heroLabel(key, p.heroId);
@@ -294,14 +309,22 @@ const Pick = (() => {
     hero.textContent = name;
     hero.classList.toggle('is-long', name.length > 12 && name.length <= 16);
     hero.classList.toggle('is-xlong', name.length > 16);
-
     $('pickImg').style.backgroundImage = `url('${heroImage(key)}'), linear-gradient(135deg, rgba(108,77,255,.45), rgba(255,61,138,.25))`;
-    frame.classList.remove('has-video');
-    video.oncanplay = () => { frame.classList.add('has-video'); video.play().catch(() => {}); };
-    video.onerror = () => frame.classList.remove('has-video');
-    video.src = `${RENDER}/${key}.webm`;
 
+    const ready = await loadVideo(key);
+
+    scene.classList.remove('is-playing', 'is-radiant', 'is-dire');
+    void scene.offsetWidth;   // перезапуск CSS-анимации
+    scene.classList.add(side === 'dire' ? 'is-dire' : 'is-radiant');
     scene.classList.add('is-playing');
+
+    const showVideo = () => {
+      try { video.currentTime = 0; } catch { /* */ }
+      video.play().catch(() => {});
+      frame.classList.add('has-video');
+    };
+    if (ready) showVideo();
+    else video.oncanplay = video.onloadeddata = showVideo;   // догрузится — проявится
 
     if (MAIN && p.voice) {
       voice.src = p.voice;

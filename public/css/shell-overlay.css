@@ -189,14 +189,20 @@ body.obs .conn { display: none; }
   position: absolute; inset: 0;
   width: 100%; height: 100%;
 }
-.pickfx__img { background-size: cover; background-position: center 22%; transition: opacity .3s ease; }
+.pickfx__img {
+  /* портрет — только размытый фон под анимированным героем: в кадре он маленький
+     (256×144) и в полный размер выглядит мыльно */
+  background-size: cover; background-position: center 22%;
+  opacity: .35;
+  filter: blur(16px) saturate(1.25);
+  transform: scale(1.2);
+}
 .is-playing .pickfx__img { animation: pf-zoom 3.6s ease-out forwards; }
-@keyframes pf-zoom { from { transform: scale(1.16); } to { transform: scale(1.02); } }
+@keyframes pf-zoom { from { transform: scale(1.32); } to { transform: scale(1.16); } }
 
 /* анимированный герой с CDN Valve: целиком, на фоне цвета команды */
-.pickfx__video { object-fit: contain; object-position: center bottom; opacity: 0; transition: opacity .3s ease; }
+.pickfx__video { object-fit: contain; object-position: center bottom; opacity: 0; transition: opacity .25s ease; }
 .pickfx__frame.has-video .pickfx__video { opacity: 1; }
-.pickfx__frame.has-video .pickfx__img { opacity: .18; filter: blur(6px); }
 
 .pickfx__flash { position: absolute; inset: 0; background: #fff; opacity: 0; mix-blend-mode: screen; }
 .is-playing .pickfx__flash { animation: pf-flash .55s .08s ease-out forwards; }
